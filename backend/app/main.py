@@ -30,17 +30,15 @@ async def lifespan(app: FastAPI):
     # Startup
     print(f"🚀 {settings.APP_NAME} startet ({settings.APP_ENV})")
 
-    # SEC-Fix: Dev-Secret in Production → sofortiger Abbruch (alle JWTs forgeable!)
-    # Prüft startswith('dev-') für breiteren Schutz + Mindestlänge 32 Zeichen
-    import sys
+    # SEC-Fix: Dev-Secret in Production → Abbruch (alle JWTs forgeable!)
     _secret = settings.SECRET_KEY
     if settings.APP_ENV == "production":
         if _secret.startswith("dev-") or _secret == "dev-secret-key-change-in-production":
-            logger.critical("FATAL: Dev-Secret-Key in Production erkannt! Server wird gestoppt.")
-            sys.exit("FATAL: dev-secret in production — setze SECRET_KEY in .env")
+            logger.critical("FATAL: Dev-Secret-Key in Production erkannt!")
+            raise RuntimeError("FATAL: dev-secret in production — setze SECRET_KEY als Env Var")
         if len(_secret) < 32:
-            logger.critical("FATAL: SECRET_KEY zu kurz (%d Zeichen, min. 32). Server wird gestoppt.", len(_secret))
-            sys.exit("FATAL: SECRET_KEY muss mindestens 32 Zeichen lang sein")
+            logger.critical("FATAL: SECRET_KEY zu kurz (%d Zeichen, min. 32).", len(_secret))
+            raise RuntimeError("FATAL: SECRET_KEY muss mindestens 32 Zeichen lang sein")
 
     # Start background scheduler for daily jobs
     scheduler_task = None
@@ -186,11 +184,17 @@ async def rate_limit_middleware(request: Request, call_next):
     return response
 
 
-# Static file serving for uploads
-# Konfigurierbar via UPLOAD_DIR env-var (default: ./uploads im CWD)
+# Static file serving for uploads (nur wenn Verzeichnis existiert/erstellt werden kann)
+# In Serverless-Umgebungen (Vercel) ist das Dateisystem read-only außer /tmp
 upload_dir = os.getenv("UPLOAD_DIR", os.path.join(os.getcwd(), "uploads"))
-os.makedirs(upload_dir, exist_ok=True)
-app.mount("/uploads", StaticFiles(directory=upload_dir), name="uploads")
+try:
+    os.makedirs(upload_dir, exist_ok=True)
+    app.mount("/uploads", StaticFiles(directory=upload_dir), name="uploads")
+except OSError:
+    # Serverless: /tmp als Fallback
+    upload_dir = "/tmp/uploads"
+    os.makedirs(upload_dir, exist_ok=True)
+    app.mount("/uploads", StaticFiles(directory=upload_dir), name="uploads")
 
 # Routes
 app.include_router(api_router)

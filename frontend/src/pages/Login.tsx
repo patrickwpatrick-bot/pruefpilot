@@ -86,8 +86,20 @@ export function Login() {
       }
       navigate(isRegister ? '/schnellstart' : '/dashboard')
     } catch (err: unknown) {
-      const msg = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail
-      setError(msg || 'Ein Fehler ist aufgetreten')
+      const axiosErr = err as { response?: { data?: { detail?: string | object[] }, status?: number }, message?: string }
+      let msg = ''
+      const detail = axiosErr?.response?.data?.detail
+      if (typeof detail === 'string') {
+        msg = detail
+      } else if (Array.isArray(detail)) {
+        // 422 Validation Error von FastAPI — detail ist ein Array
+        msg = detail.map((d: any) => d.msg || d.message || JSON.stringify(d)).join(', ')
+      } else if (axiosErr?.response?.status) {
+        msg = `Server-Fehler (${axiosErr.response.status})`
+      } else if (axiosErr?.message) {
+        msg = 'Server nicht erreichbar. Bitte versuche es später erneut.'
+      }
+      setError(msg || 'Ein unbekannter Fehler ist aufgetreten')
     } finally {
       setLoading(false)
     }

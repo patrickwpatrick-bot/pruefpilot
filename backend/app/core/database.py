@@ -1,14 +1,31 @@
 """
 PrüfPilot - Database Connection & Session Management
+Serverless-optimiert: kleinerer Pool, NullPool-Option für Vercel/Lambda
 """
+import os
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
 from sqlalchemy.orm import DeclarativeBase
+from sqlalchemy.pool import NullPool
 from app.core.config import settings
 
 
-# Pool-Settings nur für Postgres/MySQL — SQLite (Tests) verwendet NullPool und lehnt pool_size ab
+# Serverless-Erkennung (Vercel setzt AWS_LAMBDA_FUNCTION_NAME oder VERCEL)
+_is_serverless = bool(os.environ.get("VERCEL") or os.environ.get("AWS_LAMBDA_FUNCTION_NAME"))
+
 _engine_kwargs: dict = {"echo": settings.DEBUG}
-if not settings.DATABASE_URL.startswith("sqlite"):
+
+if settings.DATABASE_URL.startswith("sqlite"):
+    # SQLite (Tests) — kein Pool nötig
+    pass
+elif _is_serverless:
+    # Serverless: NullPool — jede Request öffnet/schließt eigene Connection
+    # Supabase Pooler (port 6543) handelt Connection-Pooling
+    _engine_kwargs.update(
+        poolclass=NullPool,
+        pool_pre_ping=True,
+    )
+else:
+    # Lokale Entwicklung / Docker: normaler Pool
     _engine_kwargs.update(
         pool_pre_ping=True,
         pool_size=10,
