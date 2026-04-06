@@ -1,0 +1,84 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+body {
+  @apply bg-white text-gray-900 font-sans antialiased;
+}
+
+/* Minimal scrollbar — thin vertical only, hidden at rest */
+::-webkit-scrollbar {
+  width: 3px;
+  height: 0px; /* no horizontal scrollbar */
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: transparent;
+  border-radius: 99px;
+  transition: background 0.2s;
+}
+*:hover::-webkit-scrollbar-thumb {
+  background: #e5e7eb;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #d1d5db;
+}
+/* Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+}
+*:hover {
+  scrollbar-color: #e5e7eb transparent;
+}
+
+/* Notion-style editor placeholder */
+[data-placeholder]:empty:before {
+  content: attr(data-placeholder);
+  color: #9ca3af;
+  pointer-events: none;
+  display: block;
+}
+
+/* Tablet + Touch Optimierung */
+@media (pointer: coarse) {
+  /* Larger touch targets on touch devices */
+  button, a, [role="button"], input[type="checkbox"], select {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  /* More padding for touch-friendly inputs */
+  input, textarea, select {
+    padding-top: 10px;
+    padding-bottom: 10px;
+    font-size: 16px; /* prevents iOS zoom on focus */
+  }
+  /* Disable hover effects on touch (avoid sticky hover) */
+  .hover\:bg-gray-50:hover {
+    background-color: transparent;
+  }
+}
+
+/* Tablet landscape layout tweak */
+@media (min-width: 768px) and (max-width: 1024px) {
+  .md\:w-60 {
+    width: 200px;
+  }
+}
+
+/* Safe area insets for notched devices */
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+  nav.fixed.bottom-0 {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+}
+
+/* Print styles for PDF-like output */
+@media print {
+  aside, nav.fixed { display: none !important; }
+  main { padding: 0 !important; margin: 0 !important; }
+}

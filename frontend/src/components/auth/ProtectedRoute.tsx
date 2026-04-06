@@ -1,0 +1,15 @@
+/**
+ * Auth Guard — redirects to /preise if no token
+ * (Neue Besucher sollen die Preisseite als Einstieg sehen)
+ */
+import { Navigate, Outlet } from 'react-router-dom'
+
+export function ProtectedRoute() {
+  const token = localStorage.getItem('access_token')
+
+  if (!token) {
+    return <Navigate to="/preise" replace />
+  }
+
+  return <Outlet />
+}
