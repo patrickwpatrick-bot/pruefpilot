@@ -92,13 +92,13 @@ async def get_current_session(
 
 async def get_current_user_id(
     session: SessionData = Depends(get_current_session),
-) -> _uuid.UUID:
-    """Dependency: extracts and validates user_id from JWT token as UUID."""
-    return _uuid.UUID(session["user_id"])
+) -> str:
+    """Dependency: extracts and validates user_id from JWT token."""
+    return session["user_id"]
 
 
 async def get_current_org_id(
     session: SessionData = Depends(get_current_session),
-) -> _uuid.UUID:
-    """Dependency: extracts organisation_id from JWT token as UUID."""
-    return _uuid.UUID(session["org_id"])
+) -> str:
+    """Dependency: extracts organisation_id from JWT token."""
+    return session["org_id"]

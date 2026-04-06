@@ -369,7 +369,7 @@ UNTERWEISUNGS_TEMPLATES = [
 
 @router.post("/default-checklisten")
 async def seed_default_checklisten(
-    org_id: uuid.UUID = Depends(get_current_org_id),
+    org_id: str = Depends(get_current_org_id),
     db: AsyncSession = Depends(get_db),
 ):
     """Create default checklist templates for the organisation."""
@@ -415,7 +415,7 @@ async def seed_default_checklisten(
 
 @router.post("/default-unterweisungen")
 async def seed_default_unterweisungen(
-    org_id: uuid.UUID = Depends(get_current_org_id),
+    org_id: str = Depends(get_current_org_id),
     db: AsyncSession = Depends(get_db),
 ):
     """Create default training templates for the organisation."""
@@ -566,7 +566,7 @@ BRANCHEN_TEMPLATES = {
 
 @router.post("/branchen-checklisten")
 async def seed_branchen_checklisten(
-    org_id: uuid.UUID = Depends(get_current_org_id),
+    org_id: str = Depends(get_current_org_id),
     db: AsyncSession = Depends(get_db),
 ):
     """Create branch-specific checklist templates based on organisation's branche."""
@@ -621,8 +621,8 @@ async def seed_branchen_checklisten(
 
 @router.post("/demo-daten")
 async def seed_demo_data(
-    org_id: uuid.UUID = Depends(get_current_org_id),
-    user_id: uuid.UUID = Depends(get_current_user_id),
+    org_id: str = Depends(get_current_org_id),
+    user_id: str = Depends(get_current_user_id),
     db: AsyncSession = Depends(get_db),
 ):
     """
@@ -630,7 +630,7 @@ async def seed_demo_data(
     Pre-generates all UUIDs and uses single batch insert + one commit.
     """
     try:
-        return await _seed_demo_data_impl(org_id, user_id, db)
+        return await _seed_demo_data_impl(uuid.UUID(org_id), uuid.UUID(user_id), db)
     except Exception as exc:
         await db.rollback()
         return {"error": f"Seed fehlgeschlagen: {exc}"}
@@ -1382,7 +1382,7 @@ async def _seed_demo_data_impl(
 
 @router.post("/demo-daten/loeschen")
 async def delete_demo_data(
-    org_id: uuid.UUID = Depends(get_current_org_id),
+    org_id: str = Depends(get_current_org_id),
     db: AsyncSession = Depends(get_db),
 ):
     """
