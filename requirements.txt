@@ -1,8 +1,8 @@
-# PrüfPilot Backend — Vercel Serverless Dependencies
+# PrüfPilot Backend — Vercel Serverless Dependencies (slim)
 
 # Web Framework
 fastapi==0.115.6
-uvicorn[standard]==0.34.0
+python-multipart==0.0.18
 
 # Database (asyncpg für Supabase Pooler)
 sqlalchemy[asyncio]==2.0.36
@@ -12,34 +12,14 @@ asyncpg==0.30.0
 python-jose[cryptography]==3.3.0
 passlib[bcrypt]==1.7.4
 bcrypt==4.0.1
-python-multipart==0.0.18
 
 # Validation
 pydantic==2.10.4
 pydantic-settings==2.7.1
 email-validator==2.2.0
 
-# File Handling
-boto3==1.36.2
-Pillow==11.1.0
-
-# PDF Generation
-reportlab==4.1.0
-
-# QR Codes
-qrcode[pil]==8.0
-
-# Email
-postmarker==1.0
-
-# HTTP Client (für interne Calls)
+# HTTP Client
 httpx==0.28.1
-
-# AI
-anthropic>=0.40.0
-
-# PDF text extraction
-pypdf>=4.0.0
 
 # Utilities
 python-dotenv==1.0.1
