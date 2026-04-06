@@ -369,7 +369,7 @@ UNTERWEISUNGS_TEMPLATES = [
 
 @router.post("/default-checklisten")
 async def seed_default_checklisten(
-    org_id: str = Depends(get_current_org_id),
+    org_id: uuid.UUID = Depends(get_current_org_id),
     db: AsyncSession = Depends(get_db),
 ):
     """Create default checklist templates for the organisation."""
@@ -415,7 +415,7 @@ async def seed_default_checklisten(
 
 @router.post("/default-unterweisungen")
 async def seed_default_unterweisungen(
-    org_id: str = Depends(get_current_org_id),
+    org_id: uuid.UUID = Depends(get_current_org_id),
     db: AsyncSession = Depends(get_db),
 ):
     """Create default training templates for the organisation."""
@@ -566,7 +566,7 @@ BRANCHEN_TEMPLATES = {
 
 @router.post("/branchen-checklisten")
 async def seed_branchen_checklisten(
-    org_id: str = Depends(get_current_org_id),
+    org_id: uuid.UUID = Depends(get_current_org_id),
     db: AsyncSession = Depends(get_db),
 ):
     """Create branch-specific checklist templates based on organisation's branche."""
@@ -621,8 +621,8 @@ async def seed_branchen_checklisten(
 
 @router.post("/demo-daten")
 async def seed_demo_data(
-    org_id: str = Depends(get_current_org_id),
-    user_id: str = Depends(get_current_user_id),
+    org_id: uuid.UUID = Depends(get_current_org_id),
+    user_id: uuid.UUID = Depends(get_current_user_id),
     db: AsyncSession = Depends(get_db),
 ):
     """
@@ -967,18 +967,22 @@ async def seed_demo_data(
         objects_to_add.append(pruefung)
 
     # =========================================================================
-    # CREATE PRUEF PUNKTE
+    # CREATE PRUEF PUNKTE (from in-memory data, no DB query needed)
     # =========================================================================
+    # Build a map of template_id -> list of ChecklistenPunkt IDs from objects_to_add
+    template_punkte_map: dict[uuid.UUID, list[uuid.UUID]] = {}
+    for obj in objects_to_add:
+        if isinstance(obj, ChecklistenPunkt):
+            tid = obj.template_id
+            if tid not in template_punkte_map:
+                template_punkte_map[tid] = []
+            template_punkte_map[tid].append(obj.id)
+
     for pruefung_id, template_id in pruefungen_objs:
-        cp_result = await db.execute(
-            select(ChecklistenPunkt).where(
-                ChecklistenPunkt.template_id == template_id
-            )
-        )
-        check_points = cp_result.scalars().all()
-        for j, cp in enumerate(check_points):
+        check_point_ids = template_punkte_map.get(template_id, [])
+        for j, cp_id in enumerate(check_point_ids):
             ergebnis = "ok"
-            if j >= len(check_points) - 2:
+            if j >= len(check_point_ids) - 2:
                 ergebnis = "mangel"
             elif j % 5 == 0:
                 ergebnis = "nicht_anwendbar"
@@ -986,7 +990,7 @@ async def seed_demo_data(
             pp = PruefPunkt(
                 id=uuid.uuid4(),
                 pruefung_id=pruefung_id,
-                checklisten_punkt_id=cp.id,
+                checklisten_punkt_id=cp_id,
                 ergebnis=ergebnis,
                 geprueft_am=now.date() if ergebnis != "ok" else None,
             )
@@ -1311,7 +1315,7 @@ async def seed_demo_data(
 
 @router.post("/demo-daten/loeschen")
 async def delete_demo_data(
-    org_id: str = Depends(get_current_org_id),
+    org_id: uuid.UUID = Depends(get_current_org_id),
     db: AsyncSession = Depends(get_db),
 ):
     """

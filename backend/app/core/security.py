@@ -4,6 +4,7 @@ PrüfPilot - Security: JWT Tokens & Password Hashing
 SEC-Fix: Zentrale Session-Dependency validiert sub+org Claims zusammen
 in einem einzigen Token-Decode (verhindert Token-Juggling).
 """
+import uuid as _uuid
 from datetime import datetime, timedelta, timezone
 from typing import Optional, TypedDict
 from jose import JWTError, jwt
@@ -91,13 +92,13 @@ async def get_current_session(
 
 async def get_current_user_id(
     session: SessionData = Depends(get_current_session),
-) -> str:
-    """Dependency: extracts and validates user_id from JWT token."""
-    return session["user_id"]
+) -> _uuid.UUID:
+    """Dependency: extracts and validates user_id from JWT token as UUID."""
+    return _uuid.UUID(session["user_id"])
 
 
 async def get_current_org_id(
     session: SessionData = Depends(get_current_session),
-) -> str:
-    """Dependency: extracts organisation_id from JWT token."""
-    return session["org_id"]
+) -> _uuid.UUID:
+    """Dependency: extracts organisation_id from JWT token as UUID."""
+    return _uuid.UUID(session["org_id"])
