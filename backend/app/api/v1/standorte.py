@@ -47,7 +47,23 @@ async def list_standorte(
     result = await db.execute(
         select(Standort).where(Standort.organisation_id == org_id).order_by(Standort.name)
     )
-    return result.scalars().all()
+    rows = result.scalars().all()
+    return [
+        StandortResponse(
+            id=str(s.id),
+            name=s.name,
+            strasse=s.strasse,
+            hausnummer=s.hausnummer,
+            plz=s.plz,
+            ort=s.ort,
+            gebaeude=s.gebaeude,
+            abteilung=s.abteilung,
+            etage=s.etage,
+            beschreibung=s.beschreibung,
+            created_at=s.created_at,
+        )
+        for s in rows
+    ]
 
 @router.post("", response_model=StandortResponse, status_code=201)
 async def create_standort(
@@ -59,7 +75,19 @@ async def create_standort(
     db.add(standort)
     await db.flush()
     await db.refresh(standort)
-    return standort
+    return StandortResponse(
+        id=str(standort.id),
+        name=standort.name,
+        strasse=standort.strasse,
+        hausnummer=standort.hausnummer,
+        plz=standort.plz,
+        ort=standort.ort,
+        gebaeude=standort.gebaeude,
+        abteilung=standort.abteilung,
+        etage=standort.etage,
+        beschreibung=standort.beschreibung,
+        created_at=standort.created_at,
+    )
 
 @router.put("/{standort_id}", response_model=StandortResponse)
 async def update_standort(
@@ -79,7 +107,19 @@ async def update_standort(
         setattr(standort, field, value)
     await db.flush()
     await db.refresh(standort)
-    return standort
+    return StandortResponse(
+        id=str(standort.id),
+        name=standort.name,
+        strasse=standort.strasse,
+        hausnummer=standort.hausnummer,
+        plz=standort.plz,
+        ort=standort.ort,
+        gebaeude=standort.gebaeude,
+        abteilung=standort.abteilung,
+        etage=standort.etage,
+        beschreibung=standort.beschreibung,
+        created_at=standort.created_at,
+    )
 
 @router.delete("/{standort_id}", status_code=204)
 async def delete_standort(

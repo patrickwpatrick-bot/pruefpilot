@@ -46,4 +46,20 @@ async def list_audit_logs(
         query = query.where(AuditLog.entitaet == entitaet)
     query = query.offset(offset).limit(limit)
     result = await db.execute(query)
-    return result.scalars().all()
+    rows = result.scalars().all()
+    return [
+        AuditLogResponse(
+            id=str(a.id),
+            user_id=str(a.user_id),
+            user_name=a.user_name,
+            aktion=a.aktion,
+            entitaet=a.entitaet,
+            entitaet_id=str(a.entitaet_id),
+            entitaet_name=a.entitaet_name,
+            aenderungen=a.aenderungen,
+            vorher_snapshot=a.vorher_snapshot,
+            nachher_snapshot=a.nachher_snapshot,
+            created_at=a.created_at,
+        )
+        for a in rows
+    ]

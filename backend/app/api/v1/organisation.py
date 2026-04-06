@@ -52,7 +52,7 @@ def _org_to_response(org: Organisation) -> OrganisationResponse:
         except Exception:
             berufe = []
     return OrganisationResponse(
-        id=org.id, name=org.name, strasse=org.strasse, plz=org.plz, ort=org.ort,
+        id=str(org.id), name=org.name, strasse=org.strasse, plz=org.plz, ort=org.ort,
         telefon=org.telefon, email=org.email, branche=org.branche,
         verantwortlicher_name=org.verantwortlicher_name,
         verantwortlicher_email=org.verantwortlicher_email,

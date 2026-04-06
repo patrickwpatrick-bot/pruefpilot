@@ -112,7 +112,15 @@ async def list_abteilungen(
         .where(Abteilung.organisation_id == org_id)
         .order_by(Abteilung.name)
     )
-    return result.scalars().all()
+    rows = result.scalars().all()
+    return [
+        AbteilungResponse(
+            id=str(a.id),
+            name=a.name,
+            created_at=a.created_at,
+        )
+        for a in rows
+    ]
 
 @router.post("/abteilungen", response_model=AbteilungResponse, status_code=201)
 async def create_abteilung(
@@ -124,7 +132,11 @@ async def create_abteilung(
     db.add(abt)
     await db.flush()
     await db.refresh(abt)
-    return abt
+    return AbteilungResponse(
+        id=str(abt.id),
+        name=abt.name,
+        created_at=abt.created_at,
+    )
 
 @router.delete("/abteilungen/{abteilung_id}", status_code=204)
 async def delete_abteilung(
@@ -186,7 +198,7 @@ async def list_mitarbeiter(
             else:
                 status_color = "offen"
             uw_status.append(UnterweisungsStatusItem(
-                vorlage_id=z.vorlage_id,
+                vorlage_id=str(z.vorlage_id),
                 vorlage_name=z.vorlage.name if z.vorlage else "—",
                 status=status_color,
                 unterschrieben_am=z.unterschrieben_am,
@@ -195,21 +207,35 @@ async def list_mitarbeiter(
 
         compliance = int((completed / total_zuweisungen * 100) if total_zuweisungen > 0 else 100)
 
+        # Build dokumente with str() conversion for UUIDs
+        dokumente = []
+        for d in m.dokumente:
+            dokumente.append(MitarbeiterDokumentResponse(
+                id=str(d.id),
+                mitarbeiter_id=str(d.mitarbeiter_id),
+                typ=d.typ,
+                name=d.name,
+                gueltig_bis=d.gueltig_bis,
+                bemerkung=d.bemerkung,
+                status=d.status,
+                created_at=d.created_at,
+            ))
+
         resp = MitarbeiterResponse(
-            id=m.id,
+            id=str(m.id),
             vorname=m.vorname,
             nachname=m.nachname,
             email=m.email,
             telefon=m.telefon,
             beruf=m.beruf,
             personalnummer=m.personalnummer,
-            abteilung_id=m.abteilung_id,
+            abteilung_id=str(m.abteilung_id) if m.abteilung_id else None,
             abteilung_name=m.abteilung.name if m.abteilung else None,
             eintrittsdatum=m.eintrittsdatum,
             ist_aktiv=m.ist_aktiv,
             created_at=m.created_at,
             updated_at=m.updated_at,
-            dokumente=[MitarbeiterDokumentResponse.model_validate(d) for d in m.dokumente],
+            dokumente=dokumente,
             unterweisungs_status=uw_status,
             compliance_prozent=compliance,
         )
@@ -263,9 +289,9 @@ async def create_mitarbeiter(
     )
 
     return MitarbeiterResponse(
-        id=loaded.id, vorname=loaded.vorname, nachname=loaded.nachname,
+        id=str(loaded.id), vorname=loaded.vorname, nachname=loaded.nachname,
         email=loaded.email, telefon=loaded.telefon, beruf=loaded.beruf,
-        personalnummer=loaded.personalnummer, abteilung_id=loaded.abteilung_id,
+        personalnummer=loaded.personalnummer, abteilung_id=str(loaded.abteilung_id) if loaded.abteilung_id else None,
         abteilung_name=loaded.abteilung.name if loaded.abteilung else None,
         eintrittsdatum=loaded.eintrittsdatum, ist_aktiv=loaded.ist_aktiv,
         typ=loaded.typ or 'intern', unternehmen=loaded.unternehmen,
@@ -322,9 +348,9 @@ async def update_mitarbeiter(
         )
 
     return MitarbeiterResponse(
-        id=ma.id, vorname=ma.vorname, nachname=ma.nachname,
+        id=str(ma.id), vorname=ma.vorname, nachname=ma.nachname,
         email=ma.email, telefon=ma.telefon, beruf=ma.beruf,
-        personalnummer=ma.personalnummer, abteilung_id=ma.abteilung_id,
+        personalnummer=ma.personalnummer, abteilung_id=str(ma.abteilung_id) if ma.abteilung_id else None,
         abteilung_name=ma.abteilung.name if ma.abteilung else None,
         eintrittsdatum=ma.eintrittsdatum, ist_aktiv=ma.ist_aktiv,
         created_at=ma.created_at, updated_at=ma.updated_at,
@@ -384,7 +410,20 @@ async def list_dokumente(
         .where(MitarbeiterDokument.mitarbeiter_id == mitarbeiter_id)
         .order_by(MitarbeiterDokument.created_at.desc())
     )
-    return result.scalars().all()
+    rows = result.scalars().all()
+    return [
+        MitarbeiterDokumentResponse(
+            id=str(d.id),
+            mitarbeiter_id=str(d.mitarbeiter_id),
+            typ=d.typ,
+            name=d.name,
+            gueltig_bis=d.gueltig_bis,
+            bemerkung=d.bemerkung,
+            status=d.status,
+            created_at=d.created_at,
+        )
+        for d in rows
+    ]
 
 @router.post("/{mitarbeiter_id}/dokumente", response_model=MitarbeiterDokumentResponse, status_code=201)
 async def create_dokument(
@@ -416,7 +455,16 @@ async def create_dokument(
     db.add(dok)
     await db.flush()
     await db.refresh(dok)
-    return dok
+    return MitarbeiterDokumentResponse(
+        id=str(dok.id),
+        mitarbeiter_id=str(dok.mitarbeiter_id),
+        typ=dok.typ,
+        name=dok.name,
+        gueltig_bis=dok.gueltig_bis,
+        bemerkung=dok.bemerkung,
+        status=dok.status,
+        created_at=dok.created_at,
+    )
 
 @router.delete("/{mitarbeiter_id}/dokumente/{dokument_id}", status_code=204)
 async def delete_dokument(
