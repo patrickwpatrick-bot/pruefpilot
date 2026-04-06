@@ -619,15 +619,6 @@ async def seed_branchen_checklisten(
 # OPTIMIZED SINGLE DEMO-DATEN ENDPOINT (Vercel Serverless-kompatibel)
 # =============================================================================
 
-@router.get("/debug-auth")
-async def debug_auth(
-    org_id: uuid.UUID = Depends(get_current_org_id),
-    user_id: uuid.UUID = Depends(get_current_user_id),
-):
-    """Debug endpoint to test auth dependency chain."""
-    return {"org_id": str(org_id), "user_id": str(user_id), "types": {"org": type(org_id).__name__, "user": type(user_id).__name__}, "deploy": "v4"}
-
-
 @router.post("/demo-daten")
 async def seed_demo_data(
     org_id: uuid.UUID = Depends(get_current_org_id),
@@ -638,15 +629,11 @@ async def seed_demo_data(
     Create comprehensive demo data in a single optimized batch.
     Pre-generates all UUIDs and uses single batch insert + one commit.
     """
-    import json as _json
-    import traceback as _tb
-    from random import randint
-
     try:
         return await _seed_demo_data_impl(org_id, user_id, db)
     except Exception as exc:
         await db.rollback()
-        return {"error": str(exc), "traceback": _tb.format_exc()}
+        return {"error": f"Seed fehlgeschlagen: {exc}"}
 
 
 async def _seed_demo_data_impl(

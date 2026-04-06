@@ -33,17 +33,6 @@ LOGIN_RATE_WINDOW = 300  # in 5 Minuten
 router = APIRouter(prefix="/auth", tags=["Auth"])
 
 
-@router.post("/debug-register")
-async def debug_register(data: RegisterRequest, db: AsyncSession = Depends(get_db)):
-    """Debug register endpoint — returns traceback on error."""
-    import traceback
-    try:
-        result = await db.execute(select(User).where(User.email == data.email))
-        return {"ok": True, "step": "db_query_works", "found": result.scalar_one_or_none() is not None}
-    except Exception as exc:
-        return {"error": str(exc), "traceback": traceback.format_exc()}
-
-
 @router.post("/register", response_model=TokenResponse, status_code=status.HTTP_201_CREATED, summary="Register new user", description="Create a new user account and organization. Returns access and refresh tokens.")
 async def register(data: RegisterRequest, db: AsyncSession = Depends(get_db)):
     """Register a new user + create their organisation."""

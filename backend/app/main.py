@@ -203,25 +203,9 @@ app.include_router(api_router)
 @app.get("/health", tags=["System"])
 async def health_check():
     """Health check endpoint."""
-    import os as _os
-    db_url = settings.DATABASE_URL
-    # Redact password
-    if "@" in db_url:
-        parts = db_url.split("@")
-        before_at = parts[0]
-        if ":" in before_at:
-            user_part = before_at.rsplit(":", 1)[0]
-            db_url_safe = f"{user_part}:***@{'@'.join(parts[1:])}"
-        else:
-            db_url_safe = f"***@{'@'.join(parts[1:])}"
-    else:
-        db_url_safe = "no-@-in-url"
     return {
         "status": "ok",
         "app": settings.APP_NAME,
-        "version": "0.2.1",
+        "version": "0.3.0",
         "environment": settings.APP_ENV,
-        "db_url": db_url_safe,
-        "vercel_env": _os.environ.get("VERCEL", "NOT_SET"),
-        "deploy": "v6",
     }
