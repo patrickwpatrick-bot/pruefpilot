@@ -4,7 +4,7 @@ Mangel (Defect) - Found during an inspection
 """
 import uuid
 from datetime import datetime, date, timezone
-from sqlalchemy import String, DateTime, Date, ForeignKey, Text
+from sqlalchemy import String, DateTime, Date, ForeignKey, Text, Uuid
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.core.database import Base
 
@@ -12,14 +12,14 @@ from app.core.database import Base
 class Mangel(Base):
     __tablename__ = "maengel"
 
-    id: Mapped[str] = mapped_column(
-        String(36), primary_key=True, default=lambda: str(uuid.uuid4())
+    id: Mapped[uuid.UUID] = mapped_column(
+        Uuid(as_uuid=True), primary_key=True, default=uuid.uuid4
     )
-    pruefung_id: Mapped[str] = mapped_column(
-        String(36), ForeignKey("pruefungen.id"), nullable=False, index=True
+    pruefung_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid(as_uuid=True), ForeignKey("pruefungen.id"), nullable=False, index=True
     )
     pruef_punkt_id: Mapped[str | None] = mapped_column(
-        String(36), ForeignKey("pruef_punkte.id")
+        Uuid(as_uuid=True), ForeignKey("pruef_punkte.id")
     )
 
     beschreibung: Mapped[str] = mapped_column(Text, nullable=False)
@@ -33,7 +33,7 @@ class Mangel(Base):
     erledigt_am: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     erledigt_kommentar: Mapped[str | None] = mapped_column(Text)
     zugewiesen_an: Mapped[str | None] = mapped_column(String(255))  # freies Textfeld, Name der zugewiesenen Person
-    behoben_von_id: Mapped[str | None] = mapped_column(String(36), ForeignKey("users.id"))  # welcher User hat behoben
+    behoben_von_id: Mapped[uuid.UUID | None] = mapped_column(Uuid(as_uuid=True), ForeignKey("users.id"))  # welcher User hat behoben
 
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)

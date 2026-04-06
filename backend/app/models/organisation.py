@@ -3,7 +3,8 @@ Organisation (Firma/Betrieb) - Multi-Tenant Root Entity
 """
 import uuid
 from datetime import datetime, timezone
-from sqlalchemy import String, DateTime, Text, JSON
+from sqlalchemy import String, DateTime, Text, Uuid
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.core.database import Base
 
@@ -11,8 +12,8 @@ from app.core.database import Base
 class Organisation(Base):
     __tablename__ = "organisationen"
 
-    id: Mapped[str] = mapped_column(
-        String(36), primary_key=True, default=lambda: str(uuid.uuid4())
+    id: Mapped[uuid.UUID] = mapped_column(
+        Uuid(as_uuid=True), primary_key=True, default=uuid.uuid4
     )
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     strasse: Mapped[str | None] = mapped_column(String(255))
@@ -27,7 +28,7 @@ class Organisation(Base):
     verantwortlicher_telefon: Mapped[str | None] = mapped_column(String(50))
 
     # Configurable Berufe (job titles) for this organisation — stored as JSON array
-    berufe_config: Mapped[str | None] = mapped_column(Text)
+    berufe_config: Mapped[dict | None] = mapped_column(JSONB)
 
     # Subscription
     plan: Mapped[str] = mapped_column(String(50), default="trial")  # trial, starter, professional, business

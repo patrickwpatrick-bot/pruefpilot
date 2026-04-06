@@ -68,7 +68,7 @@ async def register(data: RegisterRequest, db: AsyncSession = Depends(get_db)):
     await db.flush()
 
     # Generate tokens
-    token_data = {"sub": user.id, "org": org.id, "rolle": user.rolle}
+    token_data = {"sub": str(user.id), "org": str(org.id), "rolle": user.rolle}
     return TokenResponse(
         access_token=create_access_token(token_data),
         refresh_token=create_refresh_token(token_data),

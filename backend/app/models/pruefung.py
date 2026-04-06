@@ -3,7 +3,7 @@ Prüfung (Inspection) and PrüfPunkt (individual check items during inspection)
 """
 import uuid
 from datetime import datetime, timezone
-from sqlalchemy import String, DateTime, ForeignKey, Text, Boolean
+from sqlalchemy import String, DateTime, ForeignKey, Text, Boolean, Uuid
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.core.database import Base
 
@@ -11,17 +11,17 @@ from app.core.database import Base
 class Pruefung(Base):
     __tablename__ = "pruefungen"
 
-    id: Mapped[str] = mapped_column(
-        String(36), primary_key=True, default=lambda: str(uuid.uuid4())
+    id: Mapped[uuid.UUID] = mapped_column(
+        Uuid(as_uuid=True), primary_key=True, default=uuid.uuid4
     )
-    arbeitsmittel_id: Mapped[str] = mapped_column(
-        String(36), ForeignKey("arbeitsmittel.id"), nullable=False, index=True
+    arbeitsmittel_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid(as_uuid=True), ForeignKey("arbeitsmittel.id"), nullable=False, index=True
     )
-    checkliste_id: Mapped[str] = mapped_column(
-        String(36), ForeignKey("checklisten_templates.id"), nullable=False
+    checkliste_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid(as_uuid=True), ForeignKey("checklisten_templates.id"), nullable=False
     )
-    pruefer_id: Mapped[str] = mapped_column(
-        String(36), ForeignKey("users.id"), nullable=False, index=True
+    pruefer_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid(as_uuid=True), ForeignKey("users.id"), nullable=False, index=True
     )
 
     # Status: entwurf, in_bearbeitung, abgeschlossen
@@ -64,14 +64,14 @@ class PruefPunkt(Base):
     """Individual check result within an inspection"""
     __tablename__ = "pruef_punkte"
 
-    id: Mapped[str] = mapped_column(
-        String(36), primary_key=True, default=lambda: str(uuid.uuid4())
+    id: Mapped[uuid.UUID] = mapped_column(
+        Uuid(as_uuid=True), primary_key=True, default=uuid.uuid4
     )
-    pruefung_id: Mapped[str] = mapped_column(
-        String(36), ForeignKey("pruefungen.id"), nullable=False, index=True
+    pruefung_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid(as_uuid=True), ForeignKey("pruefungen.id"), nullable=False, index=True
     )
-    checklisten_punkt_id: Mapped[str] = mapped_column(
-        String(36), ForeignKey("checklisten_punkte.id"), nullable=False
+    checklisten_punkt_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid(as_uuid=True), ForeignKey("checklisten_punkte.id"), nullable=False
     )
 
     # Result: ok, mangel, nicht_anwendbar, offen

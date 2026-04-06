@@ -3,7 +3,7 @@ Checklisten-Templates and their Prüfpunkte
 """
 import uuid
 from datetime import datetime, timezone
-from sqlalchemy import String, DateTime, Integer, ForeignKey, Text, Boolean
+from sqlalchemy import String, DateTime, Integer, ForeignKey, Text, Boolean, Uuid
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.core.database import Base
 
@@ -11,11 +11,11 @@ from app.core.database import Base
 class ChecklistenTemplate(Base):
     __tablename__ = "checklisten_templates"
 
-    id: Mapped[str] = mapped_column(
-        String(36), primary_key=True, default=lambda: str(uuid.uuid4())
+    id: Mapped[uuid.UUID] = mapped_column(
+        Uuid(as_uuid=True), primary_key=True, default=uuid.uuid4
     )
     organisation_id: Mapped[str | None] = mapped_column(
-        String(36), ForeignKey("organisationen.id"), index=True
+        Uuid(as_uuid=True), ForeignKey("organisationen.id"), index=True
     )  # NULL = system-wide template
 
     name: Mapped[str] = mapped_column(String(255), nullable=False)
@@ -43,11 +43,11 @@ class ChecklistenTemplate(Base):
 class ChecklistenPunkt(Base):
     __tablename__ = "checklisten_punkte"
 
-    id: Mapped[str] = mapped_column(
-        String(36), primary_key=True, default=lambda: str(uuid.uuid4())
+    id: Mapped[uuid.UUID] = mapped_column(
+        Uuid(as_uuid=True), primary_key=True, default=uuid.uuid4
     )
-    template_id: Mapped[str] = mapped_column(
-        String(36), ForeignKey("checklisten_templates.id"), nullable=False, index=True
+    template_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid(as_uuid=True), ForeignKey("checklisten_templates.id"), nullable=False, index=True
     )
 
     text: Mapped[str] = mapped_column(Text, nullable=False)

@@ -5,7 +5,7 @@ Includes token-based public signing
 import uuid
 import secrets
 from datetime import datetime, date, timezone
-from sqlalchemy import String, DateTime, Date, ForeignKey, Text, Boolean
+from sqlalchemy import String, DateTime, Date, ForeignKey, Text, Boolean, Uuid
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.core.database import Base
 
@@ -14,17 +14,17 @@ class UnterweisungsZuweisung(Base):
     """Assignment: which employee needs which training"""
     __tablename__ = "unterweisungs_zuweisungen"
 
-    id: Mapped[str] = mapped_column(
-        String(36), primary_key=True, default=lambda: str(uuid.uuid4())
+    id: Mapped[uuid.UUID] = mapped_column(
+        Uuid(as_uuid=True), primary_key=True, default=uuid.uuid4
     )
-    vorlage_id: Mapped[str] = mapped_column(
-        String(36), ForeignKey("unterweisungs_vorlagen.id"), nullable=False, index=True
+    vorlage_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid(as_uuid=True), ForeignKey("unterweisungs_vorlagen.id"), nullable=False, index=True
     )
-    mitarbeiter_id: Mapped[str] = mapped_column(
-        String(36), ForeignKey("mitarbeiter.id"), nullable=False, index=True
+    mitarbeiter_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid(as_uuid=True), ForeignKey("mitarbeiter.id"), nullable=False, index=True
     )
-    organisation_id: Mapped[str] = mapped_column(
-        String(36), ForeignKey("organisationen.id"), nullable=False, index=True
+    organisation_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid(as_uuid=True), ForeignKey("organisationen.id"), nullable=False, index=True
     )
 
     status: Mapped[str] = mapped_column(

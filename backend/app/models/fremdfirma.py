@@ -5,7 +5,7 @@ Fremdfirma - External contractors and their documentation
 """
 import uuid
 from datetime import datetime, date, timezone
-from sqlalchemy import String, DateTime, Date, ForeignKey, Text
+from sqlalchemy import String, DateTime, Date, ForeignKey, Text, Uuid
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.core.database import Base
 
@@ -14,11 +14,11 @@ class Fremdfirma(Base):
     """External contractor company"""
     __tablename__ = "fremdfirmen"
 
-    id: Mapped[str] = mapped_column(
-        String(36), primary_key=True, default=lambda: str(uuid.uuid4())
+    id: Mapped[uuid.UUID] = mapped_column(
+        Uuid(as_uuid=True), primary_key=True, default=uuid.uuid4
     )
-    organisation_id: Mapped[str] = mapped_column(
-        String(36), ForeignKey("organisationen.id"), nullable=False, index=True
+    organisation_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid(as_uuid=True), ForeignKey("organisationen.id"), nullable=False, index=True
     )
 
     name: Mapped[str] = mapped_column(String(255), nullable=False)
@@ -50,11 +50,11 @@ class FremdfirmaDokument(Base):
     """Required documentation from a contractor"""
     __tablename__ = "fremdfirma_dokumente"
 
-    id: Mapped[str] = mapped_column(
-        String(36), primary_key=True, default=lambda: str(uuid.uuid4())
+    id: Mapped[uuid.UUID] = mapped_column(
+        Uuid(as_uuid=True), primary_key=True, default=uuid.uuid4
     )
-    fremdfirma_id: Mapped[str] = mapped_column(
-        String(36), ForeignKey("fremdfirmen.id"), nullable=False, index=True
+    fremdfirma_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid(as_uuid=True), ForeignKey("fremdfirmen.id"), nullable=False, index=True
     )
 
     typ: Mapped[str] = mapped_column(String(100))  # haftpflicht, unterweisung, qualifikation, gefaehrdungsbeurteilung, sonstiges

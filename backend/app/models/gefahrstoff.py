@@ -3,7 +3,7 @@ Gefahrstoff - Hazardous substances inventory and safety data
 """
 import uuid
 from datetime import datetime, date, timezone
-from sqlalchemy import String, DateTime, Date, ForeignKey, Text
+from sqlalchemy import String, DateTime, Date, ForeignKey, Text, Uuid
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.core.database import Base
 
@@ -12,11 +12,11 @@ class Gefahrstoff(Base):
     """Hazardous substance stored and used in the organization"""
     __tablename__ = "gefahrstoffe"
 
-    id: Mapped[str] = mapped_column(
-        String(36), primary_key=True, default=lambda: str(uuid.uuid4())
+    id: Mapped[uuid.UUID] = mapped_column(
+        Uuid(as_uuid=True), primary_key=True, default=uuid.uuid4
     )
-    organisation_id: Mapped[str] = mapped_column(
-        String(36), ForeignKey("organisationen.id"), nullable=False, index=True
+    organisation_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid(as_uuid=True), ForeignKey("organisationen.id"), nullable=False, index=True
     )
 
     name: Mapped[str] = mapped_column(String(255), nullable=False)

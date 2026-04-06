@@ -5,7 +5,7 @@ Gefaehrdungsbeurteilung - Risk assessment documents
 """
 import uuid
 from datetime import datetime, date, timezone
-from sqlalchemy import String, DateTime, Date, ForeignKey, Text, Integer
+from sqlalchemy import String, DateTime, Date, ForeignKey, Text, Integer, Uuid
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.core.database import Base
 
@@ -14,14 +14,14 @@ class Gefaehrdungsbeurteilung(Base):
     """Risk assessment document for a work area"""
     __tablename__ = "gefaehrdungsbeurteilungen"
 
-    id: Mapped[str] = mapped_column(
-        String(36), primary_key=True, default=lambda: str(uuid.uuid4())
+    id: Mapped[uuid.UUID] = mapped_column(
+        Uuid(as_uuid=True), primary_key=True, default=uuid.uuid4
     )
-    organisation_id: Mapped[str] = mapped_column(
-        String(36), ForeignKey("organisationen.id"), nullable=False, index=True
+    organisation_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid(as_uuid=True), ForeignKey("organisationen.id"), nullable=False, index=True
     )
-    erstellt_von_id: Mapped[str] = mapped_column(
-        String(36), ForeignKey("users.id"), nullable=False, index=True
+    erstellt_von_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid(as_uuid=True), ForeignKey("users.id"), nullable=False, index=True
     )
 
     titel: Mapped[str] = mapped_column(String(255), nullable=False)
@@ -54,11 +54,11 @@ class GBU_Gefaehrdung(Base):
     """Identified hazard within a risk assessment"""
     __tablename__ = "gbu_gefaehrdungen"
 
-    id: Mapped[str] = mapped_column(
-        String(36), primary_key=True, default=lambda: str(uuid.uuid4())
+    id: Mapped[uuid.UUID] = mapped_column(
+        Uuid(as_uuid=True), primary_key=True, default=uuid.uuid4
     )
-    gbu_id: Mapped[str] = mapped_column(
-        String(36), ForeignKey("gefaehrdungsbeurteilungen.id"), nullable=False, index=True
+    gbu_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid(as_uuid=True), ForeignKey("gefaehrdungsbeurteilungen.id"), nullable=False, index=True
     )
 
     gefaehrdung: Mapped[str] = mapped_column(Text, nullable=False)

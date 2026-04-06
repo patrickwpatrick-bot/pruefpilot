@@ -3,7 +3,7 @@ Mitarbeiter (Employee) + Abteilung (Department) + Dokument models
 """
 import uuid
 from datetime import datetime, date, timezone
-from sqlalchemy import String, DateTime, Date, ForeignKey, Text, Boolean
+from sqlalchemy import String, DateTime, Date, ForeignKey, Text, Boolean, Uuid
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.core.database import Base
 
@@ -12,11 +12,11 @@ class Abteilung(Base):
     """Department within an organisation"""
     __tablename__ = "abteilungen"
 
-    id: Mapped[str] = mapped_column(
-        String(36), primary_key=True, default=lambda: str(uuid.uuid4())
+    id: Mapped[uuid.UUID] = mapped_column(
+        Uuid(as_uuid=True), primary_key=True, default=uuid.uuid4
     )
-    organisation_id: Mapped[str] = mapped_column(
-        String(36), ForeignKey("organisationen.id"), nullable=False, index=True
+    organisation_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid(as_uuid=True), ForeignKey("organisationen.id"), nullable=False, index=True
     )
     name: Mapped[str] = mapped_column(String(255), nullable=False)
 
@@ -33,14 +33,14 @@ class Mitarbeiter(Base):
     """Employee record (not a login user - just HR data)"""
     __tablename__ = "mitarbeiter"
 
-    id: Mapped[str] = mapped_column(
-        String(36), primary_key=True, default=lambda: str(uuid.uuid4())
+    id: Mapped[uuid.UUID] = mapped_column(
+        Uuid(as_uuid=True), primary_key=True, default=uuid.uuid4
     )
-    organisation_id: Mapped[str] = mapped_column(
-        String(36), ForeignKey("organisationen.id"), nullable=False, index=True
+    organisation_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid(as_uuid=True), ForeignKey("organisationen.id"), nullable=False, index=True
     )
     abteilung_id: Mapped[str | None] = mapped_column(
-        String(36), ForeignKey("abteilungen.id"), index=True
+        Uuid(as_uuid=True), ForeignKey("abteilungen.id"), index=True
     )
 
     vorname: Mapped[str] = mapped_column(String(100), nullable=False)
@@ -78,11 +78,11 @@ class MitarbeiterDokument(Base):
     """Documents associated with an employee (licenses, certificates)"""
     __tablename__ = "mitarbeiter_dokumente"
 
-    id: Mapped[str] = mapped_column(
-        String(36), primary_key=True, default=lambda: str(uuid.uuid4())
+    id: Mapped[uuid.UUID] = mapped_column(
+        Uuid(as_uuid=True), primary_key=True, default=uuid.uuid4
     )
-    mitarbeiter_id: Mapped[str] = mapped_column(
-        String(36), ForeignKey("mitarbeiter.id"), nullable=False, index=True
+    mitarbeiter_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid(as_uuid=True), ForeignKey("mitarbeiter.id"), nullable=False, index=True
     )
     typ: Mapped[str] = mapped_column(String(50), nullable=False)  # staplerschein, kranschein, ersthelfer, schweisserschein, sonstiges
     name: Mapped[str] = mapped_column(String(255), nullable=False)
