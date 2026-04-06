@@ -24,7 +24,7 @@ elif _is_serverless:
     _engine_kwargs.update(
         poolclass=NullPool,
         pool_pre_ping=True,
-        connect_args={"prepared_statement_cache_size": 0},
+        connect_args={"statement_cache_size": 0},
     )
 else:
     # Lokale Entwicklung / Docker: normaler Pool
