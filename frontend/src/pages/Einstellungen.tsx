@@ -28,9 +28,9 @@ interface OrgData {
 }
 
 interface BillingPlan {
-  id: string
-  name: string
-  trial_expires_at: string | null
+  plan_name: string
+  limits: Record<string, any>
+  trial_endet_am: string | null
   [key: string]: any
 }
 
@@ -991,62 +991,48 @@ export function EinstellungenPage() {
           </div>
         ) : (
           <>
-            {billingPlan && (
-              <div className="bg-gradient-to-r from-gray-950 to-gray-800 text-white rounded-xl p-5 mb-6">
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 bg-white/10 rounded-lg flex items-center justify-center">
-                      <Crown size={16} className="text-white" />
-                    </div>
-                    <div>
-                      <h3 className="text-lg font-bold">{billingPlan.name}</h3>
-                      <span className="text-xs text-gray-400">Dein aktueller Plan</span>
-                    </div>
-                  </div>
-                  {billingPlan.trial_expires_at && (
-                    <span className="text-xs px-2.5 py-1 bg-amber-500/20 text-amber-300 rounded-full font-medium">
-                      Testphase bis {new Date(billingPlan.trial_expires_at).toLocaleDateString('de-DE')}
-                    </span>
-                  )}
-                </div>
-                {billingPlan.limits && (
-                  <div className="mt-3 flex flex-wrap gap-3 text-xs text-gray-300">
-                    {billingPlan.limits.arbeitsmittel && (
-                      <span className="px-2.5 py-1 bg-white/5 rounded-lg">{billingPlan.limits.arbeitsmittel === 'unbegrenzt' ? 'Unbegrenzte' : billingPlan.limits.arbeitsmittel} Arbeitsmittel</span>
-                    )}
-                    {billingPlan.limits.benutzer && (
-                      <span className="px-2.5 py-1 bg-white/5 rounded-lg">{billingPlan.limits.benutzer} Benutzer</span>
-                    )}
-                  </div>
-                )}
+            {/* Trial-Hinweis falls aktiv */}
+            {billingPlan?.trial_endet_am && (
+              <div className="flex items-center gap-2 mb-5 px-4 py-2.5 bg-amber-50 border border-amber-200 rounded-lg">
+                <span className="text-xs text-amber-700 font-medium">
+                  Testphase aktiv bis {new Date(billingPlan.trial_endet_am).toLocaleDateString('de-DE')}
+                </span>
               </div>
             )}
 
             {/* Plan Comparison */}
-            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-4">Alle Pläne im Vergleich</p>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-5">Wähle deinen Plan</p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
               {(() => {
-                // Preise konsistent mit /preise — Basic 29€, Standard 79€, Professional 149€, Enterprise 249€
+                // Mapping: Backend plan_name → Frontend Plan-Name
+                const planNameMap: Record<string, string> = {
+                  'free': 'Basic', 'trial': 'Basic',
+                  'pruef_manager': 'Standard', 'standard': 'Standard',
+                  'professional': 'Professional',
+                  'business': 'Enterprise', 'enterprise': 'Enterprise',
+                }
+                const currentPlanDisplay = planNameMap[billingPlan?.plan_name ?? ''] ?? null
+
                 const plans = [
-                  { name: 'Basic', preis: '29', subtitle: 'Für kleine Betriebe', icon: Zap, iconBg: 'bg-blue-100', iconColor: 'text-blue-600', arbeitsmittel: '25 Mitarbeiter', pruefungen: 'Prüf-Manager', benutzer: '1', wasserzeichen: true, popular: false, upsaleHint: '' },
-                  { name: 'Standard', preis: '79', subtitle: 'Für wachsende Teams', icon: Crown, iconBg: 'bg-purple-100', iconColor: 'text-purple-600', arbeitsmittel: '75 Mitarbeiter', pruefungen: 'Prüf-Manager + Unterweisungen', benutzer: '5', wasserzeichen: true, popular: true, upsaleHint: 'Unterweisungen dokumentieren & nachweisen' },
-                  { name: 'Professional', preis: '149', subtitle: 'Für mittlere Unternehmen', icon: Crown, iconBg: 'bg-green-100', iconColor: 'text-green-600', arbeitsmittel: '150 Mitarbeiter', pruefungen: '+ Gefährdungsbeurteilungen', benutzer: '15', wasserzeichen: false, popular: false, upsaleHint: 'Risikobewertung & Maßnahmen-Tracking' },
-                  { name: 'Enterprise', preis: '249', subtitle: 'Für große Organisationen', icon: Crown, iconBg: 'bg-amber-100', iconColor: 'text-amber-600', arbeitsmittel: '250+ Mitarbeiter', pruefungen: 'Alle Module + Gefahrstoffe-KI', benutzer: 'Unbegrenzt', wasserzeichen: false, popular: false, upsaleHint: 'KI-gestützte Gefahrstoff-Analyse & Fremdfirmen' },
+                  { name: 'Basic', backendKey: 'pruef_manager', preis: '29', subtitle: 'Für kleine Betriebe', icon: Zap, iconBg: 'bg-blue-50', iconColor: 'text-blue-600', arbeitsmittel: '25 Mitarbeiter', pruefungen: 'Prüf-Manager', benutzer: '1 Admin-Benutzer', wasserzeichen: true, popular: false, upsaleHint: '' },
+                  { name: 'Standard', backendKey: 'standard', preis: '79', subtitle: 'Für wachsende Teams', icon: Crown, iconBg: 'bg-purple-50', iconColor: 'text-purple-600', arbeitsmittel: '75 Mitarbeiter', pruefungen: 'Prüf-Manager + Unterweisungen', benutzer: 'bis 5 Benutzer', wasserzeichen: true, popular: true, upsaleHint: 'Unterweisungen dokumentieren & nachweisen' },
+                  { name: 'Professional', backendKey: 'professional', preis: '149', subtitle: 'Für mittlere Unternehmen', icon: Crown, iconBg: 'bg-green-50', iconColor: 'text-green-600', arbeitsmittel: '150 Mitarbeiter', pruefungen: '+ Gefährdungsbeurteilungen', benutzer: 'bis 15 Benutzer', wasserzeichen: false, popular: false, upsaleHint: 'Risikobewertung & Maßnahmen-Tracking' },
+                  { name: 'Enterprise', backendKey: 'business', preis: '249', subtitle: 'Für große Organisationen', icon: Crown, iconBg: 'bg-amber-50', iconColor: 'text-amber-600', arbeitsmittel: '250+ Mitarbeiter', pruefungen: 'Alle Module + Gefahrstoffe-KI', benutzer: 'Unbegrenzt Benutzer', wasserzeichen: false, popular: false, upsaleHint: 'KI-gestützte Gefahrstoff-Analyse & Fremdfirmen' },
                 ]
-                const currentPlanIndex = plans.findIndex(p => p.name === billingPlan?.name)
+                const currentPlanIndex = plans.findIndex(p => p.name === currentPlanDisplay)
 
                 return plans.map((plan, idx) => {
-                  const isCurrent = billingPlan?.name === plan.name
-                  const isUpgrade = idx > currentPlanIndex
-                  const isDowngrade = idx < currentPlanIndex
+                  const isCurrent = plan.name === currentPlanDisplay
+                  const isUpgrade = currentPlanIndex < 0 || idx > currentPlanIndex
+                  const isDowngrade = currentPlanIndex >= 0 && idx < currentPlanIndex
                   const PlanIcon = plan.icon
 
                   return (
                     <div
                       key={plan.name}
                       className={clsx(
-                        'relative rounded-xl border-2 p-5 transition-all flex flex-col',
-                        isCurrent ? 'border-black ring-1 ring-black/5 bg-gray-50/50' : 'border-gray-200 hover:border-gray-300',
+                        'relative rounded-2xl border-2 p-6 transition-all flex flex-col',
+                        isCurrent ? 'border-black ring-1 ring-black/5 bg-gray-50/30' : 'border-gray-200 hover:border-gray-300',
                         plan.popular && !isCurrent && 'border-purple-200 hover:border-purple-300'
                       )}
                     >
@@ -1063,45 +1049,45 @@ export function EinstellungenPage() {
                       )}
 
                       {/* Header */}
-                      <div className="flex items-center gap-2 mb-1 mt-1">
-                        <div className={`w-8 h-8 rounded-lg ${plan.iconBg} flex items-center justify-center`}>
-                          <PlanIcon size={16} className={plan.iconColor} />
+                      <div className="flex items-center gap-3 mb-3 mt-1">
+                        <div className={`w-10 h-10 rounded-xl ${plan.iconBg} flex items-center justify-center`}>
+                          <PlanIcon size={18} className={plan.iconColor} />
                         </div>
                         <div>
-                          <h3 className="text-sm font-bold text-black">{plan.name}</h3>
-                          <p className="text-[10px] text-gray-400">{plan.subtitle}</p>
+                          <h3 className="text-base font-bold text-black">{plan.name}</h3>
+                          <p className="text-xs text-gray-400">{plan.subtitle}</p>
                         </div>
                       </div>
 
                       {/* Preis */}
-                      <div className="mb-3 mt-2">
-                        <span className="text-2xl font-bold text-black">{plan.preis}€</span>
-                        <span className="text-xs text-gray-400">/Monat</span>
+                      <div className="mb-4">
+                        <span className="text-3xl font-bold text-black">{plan.preis}€</span>
+                        <span className="text-sm text-gray-400">/Monat</span>
                       </div>
 
                       {/* Features */}
-                      <ul className="space-y-2 mb-4 text-xs text-gray-600 flex-1">
-                        <li className="flex items-center gap-2">
-                          <Check size={14} className="text-green-500 flex-shrink-0" />
+                      <ul className="space-y-2.5 mb-5 text-sm text-gray-600 flex-1">
+                        <li className="flex items-center gap-2.5">
+                          <Check size={15} className="text-green-500 flex-shrink-0" />
                           <span>{plan.arbeitsmittel}</span>
                         </li>
-                        <li className="flex items-center gap-2">
-                          <Check size={14} className="text-green-500 flex-shrink-0" />
+                        <li className="flex items-center gap-2.5">
+                          <Check size={15} className="text-green-500 flex-shrink-0" />
                           <span>{plan.pruefungen}</span>
                         </li>
-                        <li className="flex items-center gap-2">
-                          <Check size={14} className="text-green-500 flex-shrink-0" />
-                          <span>{plan.benutzer === 'Unbegrenzt' ? 'Unbegrenzt Benutzer' : plan.benutzer === '1' ? '1 Admin-Benutzer' : `bis ${plan.benutzer} Benutzer`}</span>
+                        <li className="flex items-center gap-2.5">
+                          <Check size={15} className="text-green-500 flex-shrink-0" />
+                          <span>{plan.benutzer}</span>
                         </li>
-                        <li className="flex items-center gap-2">
+                        <li className="flex items-center gap-2.5">
                           {plan.wasserzeichen ? (
                             <>
-                              <X size={14} className="text-gray-300 flex-shrink-0" />
+                              <X size={15} className="text-gray-300 flex-shrink-0" />
                               <span className="text-gray-400">PDF mit Wasserzeichen</span>
                             </>
                           ) : (
                             <>
-                              <Check size={14} className="text-green-500 flex-shrink-0" />
+                              <Check size={15} className="text-green-500 flex-shrink-0" />
                               <span>PDF ohne Wasserzeichen</span>
                             </>
                           )}
@@ -1110,23 +1096,23 @@ export function EinstellungenPage() {
 
                       {/* Subtiler Upsale-Hint */}
                       {!isCurrent && isUpgrade && plan.upsaleHint && (
-                        <p className="text-[10px] text-purple-500 mb-3 px-1 leading-relaxed">
+                        <p className="text-xs text-purple-500 mb-3 leading-relaxed">
                           {plan.upsaleHint}
                         </p>
                       )}
 
                       {/* Action Button */}
                       {isCurrent ? (
-                        <button disabled className="w-full px-3 py-2.5 bg-gray-100 text-gray-400 text-xs font-medium rounded-lg cursor-default">
-                          Dein aktueller Plan
+                        <button disabled className="w-full px-4 py-3 bg-gray-100 text-gray-400 text-sm font-medium rounded-xl cursor-default">
+                          Aktueller Plan
                         </button>
                       ) : isUpgrade ? (
                         <button
                           onClick={() => {
-                            api.post('/billing/checkout', { plan: plan.name }).catch(err => alert(err?.response?.data?.detail || 'Fehler'))
+                            api.post('/billing/checkout', { plan: plan.backendKey }).catch(err => alert(err?.response?.data?.detail || 'Fehler'))
                           }}
                           className={clsx(
-                            'w-full px-3 py-2.5 text-xs font-medium rounded-lg transition-colors',
+                            'w-full px-4 py-3 text-sm font-medium rounded-xl transition-colors',
                             plan.popular
                               ? 'bg-purple-600 text-white hover:bg-purple-700'
                               : 'bg-black text-white hover:bg-gray-800'
@@ -1138,9 +1124,9 @@ export function EinstellungenPage() {
                         <button
                           onClick={() => {
                             if (!confirm(`Möchtest du wirklich zum ${plan.name}-Plan wechseln? Du verlierst dabei ggf. Funktionen deines aktuellen Plans.`)) return
-                            api.post('/billing/checkout', { plan: plan.name }).catch(err => alert(err?.response?.data?.detail || 'Fehler'))
+                            api.post('/billing/checkout', { plan: plan.backendKey }).catch(err => alert(err?.response?.data?.detail || 'Fehler'))
                           }}
-                          className="w-full px-3 py-2.5 border border-gray-200 text-gray-500 text-xs font-medium rounded-lg hover:bg-gray-50 transition-colors"
+                          className="w-full px-4 py-3 border border-gray-200 text-gray-500 text-sm font-medium rounded-xl hover:bg-gray-50 transition-colors"
                         >
                           Wechseln
                         </button>
@@ -1152,7 +1138,7 @@ export function EinstellungenPage() {
             </div>
 
             {/* Manage Subscription */}
-            {billingPlan && billingPlan.name !== 'Free' && (
+            {billingPlan && billingPlan.plan_name !== 'free' && billingPlan.plan_name !== 'trial' && (
               <div className="flex justify-center pt-4 border-t border-gray-100">
                 <button
                   onClick={() => {
