@@ -658,6 +658,47 @@ async def _seed_demo_data_impl(
     from random import randint
 
     # =========================================================================
+    # DELETE EXISTING DEMO DATA FIRST (idempotent re-seed)
+    # =========================================================================
+    # Delete in correct order respecting foreign key constraints
+    await db.execute(delete(FremdfirmaDokument).where(
+        FremdfirmaDokument.fremdfirma_id.in_(
+            select(Fremdfirma.id).where(Fremdfirma.organisation_id == org_id))))
+    await db.execute(delete(Fremdfirma).where(Fremdfirma.organisation_id == org_id))
+    await db.execute(delete(Gefahrstoff).where(Gefahrstoff.organisation_id == org_id))
+    await db.execute(delete(GBU_Gefaehrdung).where(
+        GBU_Gefaehrdung.gbu_id.in_(
+            select(Gefaehrdungsbeurteilung.id).where(Gefaehrdungsbeurteilung.organisation_id == org_id))))
+    await db.execute(delete(Gefaehrdungsbeurteilung).where(Gefaehrdungsbeurteilung.organisation_id == org_id))
+    await db.execute(delete(UnterweisungsDurchfuehrung).where(UnterweisungsDurchfuehrung.organisation_id == org_id))
+    await db.execute(delete(UnterweisungsVorlage).where(UnterweisungsVorlage.organisation_id == org_id))
+    await db.execute(delete(Mangel).where(
+        Mangel.pruefung_id.in_(
+            select(Pruefung.id).where(Pruefung.arbeitsmittel_id.in_(
+                select(Arbeitsmittel.id).where(Arbeitsmittel.organisation_id == org_id))))))
+    await db.execute(delete(PruefPunkt).where(
+        PruefPunkt.pruefung_id.in_(
+            select(Pruefung.id).where(Pruefung.arbeitsmittel_id.in_(
+                select(Arbeitsmittel.id).where(Arbeitsmittel.organisation_id == org_id))))))
+    await db.execute(delete(Pruefung).where(
+        Pruefung.arbeitsmittel_id.in_(
+            select(Arbeitsmittel.id).where(Arbeitsmittel.organisation_id == org_id))))
+    await db.execute(delete(ChecklistenPunkt).where(
+        ChecklistenPunkt.template_id.in_(
+            select(ChecklistenTemplate.id).where(ChecklistenTemplate.organisation_id == org_id))))
+    await db.execute(delete(ChecklistenTemplate).where(ChecklistenTemplate.organisation_id == org_id))
+    await db.execute(delete(Arbeitsmittel).where(Arbeitsmittel.organisation_id == org_id))
+    await db.execute(delete(Mitarbeiter).where(Mitarbeiter.organisation_id == org_id))
+    await db.execute(delete(Abteilung).where(Abteilung.organisation_id == org_id))
+    await db.execute(delete(Standort).where(Standort.organisation_id == org_id))
+    # Delete demo users but keep the current user
+    await db.execute(delete(User).where(
+        User.organisation_id == org_id,
+        User.id != user_id,
+        User.email.like("demo.%@pruefpilot.de")))
+    await db.flush()
+
+    # =========================================================================
     # FETCH AND UPDATE ORGANISATION
     # =========================================================================
     org_result = await db.execute(
