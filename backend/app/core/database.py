@@ -1,42 +1,34 @@
 """
 PrüfPilot - Database Connection & Session Management
-Serverless-optimiert: kleinerer Pool, NullPool-Option für Vercel/Lambda
+
+WICHTIG: Supabase Transaction Pooler (pgbouncer, Port 6543) unterstützt
+keine Prepared Statements. statement_cache_size=0 ist zwingend nötig.
 """
-import os
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
 from sqlalchemy.orm import DeclarativeBase
 from sqlalchemy.pool import NullPool
 from app.core.config import settings
 
 
-# Serverless-Erkennung (Vercel setzt AWS_LAMBDA_FUNCTION_NAME oder VERCEL)
-_is_serverless = bool(os.environ.get("VERCEL") or os.environ.get("AWS_LAMBDA_FUNCTION_NAME"))
-
-# DATABASE_URL vorbereiten — prepared_statement_cache_size=0 für pgbouncer
-# Supabase Transaction Pooler unterstützt keine Prepared Statements.
-# SQLAlchemy asyncpg liest diesen Parameter aus der URL, nicht aus connect_args.
+# URL mit prepared_statement_cache_size=0 (für SQLAlchemy asyncpg dialect)
 _db_url = settings.DATABASE_URL
-if _db_url.startswith("postgresql") and "prepared_statement_cache_size" not in _db_url:
-    _separator = "&" if "?" in _db_url else "?"
-    _db_url = f"{_db_url}{_separator}prepared_statement_cache_size=0"
-
 _engine_kwargs: dict = {"echo": settings.DEBUG}
 
 if _db_url.startswith("sqlite"):
-    # SQLite (Tests) — kein Pool nötig
     pass
-else:
-    # PostgreSQL
-    _engine_kwargs["pool_pre_ping"] = True
-    if _is_serverless:
-        # Serverless: NullPool — Supabase Pooler handelt Connection-Pooling
-        _engine_kwargs["poolclass"] = NullPool
-    else:
-        # Lokale Entwicklung / Docker: normaler Pool
-        _engine_kwargs.update(
-            pool_size=10,
-            max_overflow=20,
-        )
+elif _db_url.startswith("postgresql"):
+    # SQLAlchemy asyncpg: prepared_statement_cache_size als URL-Parameter
+    if "prepared_statement_cache_size" not in _db_url:
+        _sep = "&" if "?" in _db_url else "?"
+        _db_url = f"{_db_url}{_sep}prepared_statement_cache_size=0"
+
+    _engine_kwargs.update(
+        poolclass=NullPool,           # Immer NullPool — Supabase Pooler handelt das
+        pool_pre_ping=True,
+        connect_args={
+            "statement_cache_size": 0,  # asyncpg: keine client-seitigen Prepared Stmts
+        },
+    )
 
 engine = create_async_engine(_db_url, **_engine_kwargs)
 
