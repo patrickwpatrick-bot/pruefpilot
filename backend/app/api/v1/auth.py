@@ -105,7 +105,7 @@ async def login(data: LoginRequest, request: Request, db: AsyncSession = Depends
             detail="Dieses Konto ist deaktiviert",
         )
 
-    token_data = {"sub": user.id, "org": user.organisation_id, "rolle": user.rolle}
+    token_data = {"sub": str(user.id), "org": str(user.organisation_id), "rolle": user.rolle}
     return TokenResponse(
         access_token=create_access_token(token_data),
         refresh_token=create_refresh_token(token_data),
@@ -119,14 +119,15 @@ async def refresh_token(data: RefreshRequest, db: AsyncSession = Depends(get_db)
     if payload.get("type") != "refresh":
         raise HTTPException(status_code=400, detail="Ungültiger Token-Typ")
 
+    import uuid as _uuid
     user_id = payload.get("sub")
-    result = await db.execute(select(User).where(User.id == user_id))
+    result = await db.execute(select(User).where(User.id == _uuid.UUID(user_id)))
     user = result.scalar_one_or_none()
 
     if not user or not user.ist_aktiv:
         raise HTTPException(status_code=401, detail="User nicht gefunden oder deaktiviert")
 
-    token_data = {"sub": user.id, "org": user.organisation_id, "rolle": user.rolle}
+    token_data = {"sub": str(user.id), "org": str(user.organisation_id), "rolle": user.rolle}
     return TokenResponse(
         access_token=create_access_token(token_data),
         refresh_token=create_refresh_token(token_data),
@@ -139,7 +140,8 @@ async def get_me(
     db: AsyncSession = Depends(get_db),
 ):
     """Get current user profile."""
-    result = await db.execute(select(User).where(User.id == user_id))
+    import uuid as _uuid
+    result = await db.execute(select(User).where(User.id == _uuid.UUID(user_id)))
     user = result.scalar_one_or_none()
     if not user:
         raise HTTPException(status_code=404, detail="User nicht gefunden")
