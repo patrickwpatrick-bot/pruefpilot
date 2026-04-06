@@ -4,7 +4,10 @@ All queries automatically filter by organisation_id (multi-tenant isolation)
 """
 import csv
 import io
-import qrcode
+try:
+    import qrcode
+except ImportError:
+    qrcode = None  # type: ignore
 from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException, status, Query, UploadFile, File
 from fastapi.responses import StreamingResponse
@@ -430,6 +433,8 @@ async def get_qr_code(
     if not item:
         raise HTTPException(status_code=404, detail="Arbeitsmittel nicht gefunden")
 
+    if qrcode is None:
+        raise HTTPException(status_code=501, detail="QR-Code Bibliothek nicht verfügbar")
     # Generate QR code pointing to the detail page
     frontend_url = getattr(settings, 'FRONTEND_URL', 'https://app.pruefpilot.de')
     qr_url = f"{frontend_url}/arbeitsmittel?id={arbeitsmittel_id}"
@@ -471,6 +476,9 @@ async def generate_qr_labels(
 
     if not items:
         raise HTTPException(status_code=404, detail="Keine Arbeitsmittel gefunden")
+
+    if qrcode is None:
+        raise HTTPException(status_code=501, detail="QR-Code Bibliothek nicht verfügbar")
 
     buffer = io.BytesIO()
     c = pdf_canvas.Canvas(buffer, pagesize=A4)
