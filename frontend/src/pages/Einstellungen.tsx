@@ -781,6 +781,11 @@ export function EinstellungenPage() {
                     await api.post('/seed/demo-daten/loeschen')
                     window.location.reload()
                   } catch (e: any) {
+                    if (e?.response?.status === 401) {
+                      alert('Sitzung abgelaufen — bitte neu einloggen.')
+                      window.location.href = '/login'
+                      return
+                    }
                     alert(e?.response?.data?.detail || 'Fehler beim Löschen')
                   }
                 } else {
@@ -788,6 +793,11 @@ export function EinstellungenPage() {
                     await api.post('/seed/demo-daten')
                     window.location.reload()
                   } catch (e: any) {
+                    if (e?.response?.status === 401) {
+                      alert('Sitzung abgelaufen — bitte neu einloggen.')
+                      window.location.href = '/login'
+                      return
+                    }
                     alert(e?.response?.data?.detail || 'Fehler beim Laden der Demo-Daten')
                   }
                 }
