@@ -12,7 +12,7 @@ const colorMap: Record<AmpelFarbe, { dot: string; bg: string; text: string; labe
 }
 
 export function AmpelBadge({ status, className }: { status: AmpelFarbe; className?: string }) {
-  const { dot, bg, text, label } = colorMap[status]
+  const { dot, bg, text, label } = colorMap[status] ?? colorMap.unbekannt
   return (
     <span className={clsx('inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium', bg, text, className)}>
       <span className={clsx('h-1.5 w-1.5 rounded-full', dot)} />

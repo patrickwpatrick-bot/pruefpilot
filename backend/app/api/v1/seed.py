@@ -809,9 +809,9 @@ async def _seed_demo_data_impl(
         {"id": uuid.uuid4(), "name": "Stapler Still RX70", "typ": "stapler", "hersteller": "Still", "baujahr": 2022, "standort": "Außenlager Nord", "status": "gruen", "tage_bis_pruefung": 180, "norm": "DGUV V68"},
         {"id": uuid.uuid4(), "name": "Schweißgerät Fronius 400i", "typ": "schweissgeraet", "hersteller": "Fronius", "baujahr": 2022, "standort": "Hauptwerk Stuttgart", "status": "gruen", "tage_bis_pruefung": 220, "norm": "DGUV V3"},
         {"id": uuid.uuid4(), "name": "Alu-Stehleiter 3m", "typ": "leiter", "hersteller": "Zarges", "baujahr": 2021, "standort": "Hauptwerk Stuttgart", "status": "gruen", "tage_bis_pruefung": 90, "norm": "DIN EN 131"},
-        {"id": uuid.uuid4(), "name": "Anlegeleiter 4,5m", "typ": "leiter", "hersteller": "Hymer", "baujahr": 2020, "standort": "Hauptwerk Stuttgart", "status": "orange", "tage_bis_pruefung": 7, "norm": "DIN EN 131"},
+        {"id": uuid.uuid4(), "name": "Anlegeleiter 4,5m", "typ": "leiter", "hersteller": "Hymer", "baujahr": 2020, "standort": "Hauptwerk Stuttgart", "status": "gelb", "tage_bis_pruefung": 7, "norm": "DIN EN 131"},
         {"id": uuid.uuid4(), "name": "Palettenregal Fachbodenregal R1", "typ": "regal", "hersteller": "META", "baujahr": 2020, "standort": "Außenlager Nord", "status": "gruen", "tage_bis_pruefung": 160, "norm": "DIN EN 15635"},
-        {"id": uuid.uuid4(), "name": "Fachbodenregal Metall", "typ": "regal", "hersteller": "Schulte", "baujahr": 2019, "standort": "Außenlager Nord", "status": "orange", "tage_bis_pruefung": 10, "norm": "DIN EN 15635"},
+        {"id": uuid.uuid4(), "name": "Fachbodenregal Metall", "typ": "regal", "hersteller": "Schulte", "baujahr": 2019, "standort": "Außenlager Nord", "status": "gelb", "tage_bis_pruefung": 10, "norm": "DIN EN 15635"},
         {"id": uuid.uuid4(), "name": "Bandschleifer BSM 150", "typ": "schleifmaschine", "hersteller": "Metabo", "baujahr": 2023, "standort": "Hauptwerk Stuttgart", "status": "gruen", "tage_bis_pruefung": 140, "norm": "DGUV V3"},
         {"id": uuid.uuid4(), "name": "Kompressor Atlas Copco", "typ": "kompressor", "hersteller": "Atlas Copco", "baujahr": 2017, "standort": "Hauptwerk Stuttgart", "status": "gelb", "tage_bis_pruefung": 20, "norm": "BetrSichV"},
         {"id": uuid.uuid4(), "name": "Feuerlöscher Set (5x)", "typ": "brandschutz", "hersteller": "Gloria", "baujahr": 2022, "standort": "Hauptwerk Stuttgart", "status": "gruen", "tage_bis_pruefung": 150, "norm": "EN 3"},
@@ -1068,11 +1068,11 @@ async def _seed_demo_data_impl(
     # =========================================================================
     mangel_descriptions = [
         ("Hydraulikschlauch Leckage", "rot", "offen"),
-        ("Sicherheitsabdeckung Riss", "orange", "in_bearbeitung"),
+        ("Sicherheitsabdeckung Riss", "gelb", "in_bearbeitung"),
         ("Hupe defekt", "gruen", "offen"),
         ("Bremsflüssigkeit ersetzt", "gruen", "erledigt"),
-        ("Beleuchtung defekt (1 Leuchte)", "orange", "in_bearbeitung"),
-        ("Reifenprofil gering", "orange", "offen"),
+        ("Beleuchtung defekt (1 Leuchte)", "gelb", "in_bearbeitung"),
+        ("Reifenprofil gering", "gelb", "offen"),
         ("Verschleiß Gabelzinken", "gelb", "offen"),
         ("Flüssigkeitsverlust Hydraulik", "rot", "offen"),
     ]
