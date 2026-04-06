@@ -78,7 +78,33 @@ async def list_fremdfirmen(
         .where(Fremdfirma.organisation_id == org_id)
         .order_by(Fremdfirma.name)
     )
-    return result.scalars().all()
+    items = result.scalars().all()
+    return [
+        FremdfirmaResponse(
+            id=str(item.id),
+            name=item.name,
+            ansprechpartner=item.ansprechpartner,
+            email=item.email,
+            telefon=item.telefon,
+            taetigkeit=item.taetigkeit,
+            status=item.status,
+            dokumente=[
+                FremdfirmaDokumentResponse(
+                    id=str(d.id),
+                    fremdfirma_id=str(d.fremdfirma_id),
+                    typ=d.typ,
+                    name=d.name,
+                    gueltig_bis=d.gueltig_bis,
+                    status=d.status,
+                    bemerkung=d.bemerkung,
+                    created_at=d.created_at,
+                )
+                for d in item.dokumente
+            ],
+            created_at=item.created_at,
+        )
+        for item in items
+    ]
 
 @router.post("", response_model=FremdfirmaResponse, status_code=201)
 async def create_fremdfirma(
@@ -100,7 +126,30 @@ async def create_fremdfirma(
         .options(selectinload(Fremdfirma.dokumente))
         .where(Fremdfirma.id == fremdfirma.id)
     )
-    return result.scalar_one()
+    ff_loaded = result.scalar_one()
+    return FremdfirmaResponse(
+        id=str(ff_loaded.id),
+        name=ff_loaded.name,
+        ansprechpartner=ff_loaded.ansprechpartner,
+        email=ff_loaded.email,
+        telefon=ff_loaded.telefon,
+        taetigkeit=ff_loaded.taetigkeit,
+        status=ff_loaded.status,
+        dokumente=[
+            FremdfirmaDokumentResponse(
+                id=str(d.id),
+                fremdfirma_id=str(d.fremdfirma_id),
+                typ=d.typ,
+                name=d.name,
+                gueltig_bis=d.gueltig_bis,
+                status=d.status,
+                bemerkung=d.bemerkung,
+                created_at=d.created_at,
+            )
+            for d in ff_loaded.dokumente
+        ],
+        created_at=ff_loaded.created_at,
+    )
 
 @router.put("/{fremdfirma_id}", response_model=FremdfirmaResponse)
 async def update_fremdfirma(
@@ -131,7 +180,30 @@ async def update_fremdfirma(
         .options(selectinload(Fremdfirma.dokumente))
         .where(Fremdfirma.id == fremdfirma.id)
     )
-    return result.scalar_one()
+    ff_loaded = result.scalar_one()
+    return FremdfirmaResponse(
+        id=str(ff_loaded.id),
+        name=ff_loaded.name,
+        ansprechpartner=ff_loaded.ansprechpartner,
+        email=ff_loaded.email,
+        telefon=ff_loaded.telefon,
+        taetigkeit=ff_loaded.taetigkeit,
+        status=ff_loaded.status,
+        dokumente=[
+            FremdfirmaDokumentResponse(
+                id=str(d.id),
+                fremdfirma_id=str(d.fremdfirma_id),
+                typ=d.typ,
+                name=d.name,
+                gueltig_bis=d.gueltig_bis,
+                status=d.status,
+                bemerkung=d.bemerkung,
+                created_at=d.created_at,
+            )
+            for d in ff_loaded.dokumente
+        ],
+        created_at=ff_loaded.created_at,
+    )
 
 @router.delete("/{fremdfirma_id}", status_code=204)
 async def delete_fremdfirma(
@@ -179,7 +251,16 @@ async def add_dokument(
     db.add(dokument)
     await db.flush()
     await db.refresh(dokument)
-    return dokument
+    return FremdfirmaDokumentResponse(
+        id=str(dokument.id),
+        fremdfirma_id=str(dokument.fremdfirma_id),
+        typ=dokument.typ,
+        name=dokument.name,
+        gueltig_bis=dokument.gueltig_bis,
+        status=dokument.status,
+        bemerkung=dokument.bemerkung,
+        created_at=dokument.created_at,
+    )
 
 @router.put("/{fremdfirma_id}/dokumente/{dok_id}", response_model=FremdfirmaDokumentResponse)
 async def update_dokument(
@@ -217,7 +298,16 @@ async def update_dokument(
         setattr(dokument, field, value)
     await db.flush()
     await db.refresh(dokument)
-    return dokument
+    return FremdfirmaDokumentResponse(
+        id=str(dokument.id),
+        fremdfirma_id=str(dokument.fremdfirma_id),
+        typ=dokument.typ,
+        name=dokument.name,
+        gueltig_bis=dokument.gueltig_bis,
+        status=dokument.status,
+        bemerkung=dokument.bemerkung,
+        created_at=dokument.created_at,
+    )
 
 @router.delete("/{fremdfirma_id}/dokumente/{dok_id}", status_code=204)
 async def delete_dokument(

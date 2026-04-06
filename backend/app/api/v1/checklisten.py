@@ -69,7 +69,36 @@ async def list_checklisten(
         )
         .order_by(ChecklistenTemplate.name)
     )
-    return result.scalars().all()
+    templates = result.scalars().all()
+
+    # Explicitly construct response models to handle UUID serialization
+    response_list = []
+    for template in templates:
+        punkte = [
+            PunktResponse(
+                id=str(p.id),
+                text=p.text,
+                kategorie=p.kategorie,
+                hinweis=p.hinweis,
+                reihenfolge=p.reihenfolge,
+                ist_pflicht=p.ist_pflicht,
+            )
+            for p in template.punkte
+        ]
+        response = ChecklisteResponse(
+            id=str(template.id),
+            name=template.name,
+            norm=template.norm,
+            beschreibung=template.beschreibung,
+            kategorie=template.kategorie,
+            ist_system_template=template.ist_system_template,
+            version=template.version,
+            punkte=punkte,
+            created_at=template.created_at,
+        )
+        response_list.append(response)
+
+    return response_list
 
 @router.post("", response_model=ChecklisteResponse, status_code=201)
 async def create_checkliste(
@@ -107,7 +136,31 @@ async def create_checkliste(
         .options(selectinload(ChecklistenTemplate.punkte))
         .where(ChecklistenTemplate.id == template.id)
     )
-    return result.scalar_one()
+    template = result.scalar_one()
+
+    # Explicitly construct response model to handle UUID serialization
+    punkte = [
+        PunktResponse(
+            id=str(p.id),
+            text=p.text,
+            kategorie=p.kategorie,
+            hinweis=p.hinweis,
+            reihenfolge=p.reihenfolge,
+            ist_pflicht=p.ist_pflicht,
+        )
+        for p in template.punkte
+    ]
+    return ChecklisteResponse(
+        id=str(template.id),
+        name=template.name,
+        norm=template.norm,
+        beschreibung=template.beschreibung,
+        kategorie=template.kategorie,
+        ist_system_template=template.ist_system_template,
+        version=template.version,
+        punkte=punkte,
+        created_at=template.created_at,
+    )
 
 @router.delete("/{checkliste_id}", status_code=204)
 async def delete_checkliste(

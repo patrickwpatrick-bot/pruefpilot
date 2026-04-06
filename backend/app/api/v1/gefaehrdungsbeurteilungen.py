@@ -80,7 +80,36 @@ async def list_gbu(
         .where(Gefaehrdungsbeurteilung.organisation_id == org_id)
         .order_by(Gefaehrdungsbeurteilung.datum.desc())
     )
-    return result.scalars().all()
+    gbus = result.scalars().all()
+    return [
+        GefaehrdungsbeurteilungResponse(
+            id=str(gbu.id),
+            titel=gbu.titel,
+            arbeitsbereich=gbu.arbeitsbereich,
+            status=gbu.status,
+            datum=gbu.datum,
+            naechste_ueberpruefung_am=gbu.naechste_ueberpruefung_am,
+            bemerkung=gbu.bemerkung,
+            gefaehrdungen=[
+                GefaehrdungResponse(
+                    id=str(g.id),
+                    gbu_id=str(g.gbu_id),
+                    gefaehrdung=g.gefaehrdung,
+                    risikoklasse=g.risikoklasse,
+                    bestehende_massnahmen=g.bestehende_massnahmen,
+                    weitere_massnahmen=g.weitere_massnahmen,
+                    verantwortlich=g.verantwortlich,
+                    frist=g.frist,
+                    status=g.status,
+                    reihenfolge=g.reihenfolge,
+                    created_at=g.created_at,
+                )
+                for g in gbu.gefaehrdungen
+            ],
+            created_at=gbu.created_at,
+        )
+        for gbu in gbus
+    ]
 
 @router.post("", response_model=GefaehrdungsbeurteilungResponse, status_code=201)
 async def create_gbu(
@@ -107,7 +136,33 @@ async def create_gbu(
         .options(selectinload(Gefaehrdungsbeurteilung.gefaehrdungen))
         .where(Gefaehrdungsbeurteilung.id == gbu.id)
     )
-    return result.scalar_one()
+    gbu_loaded = result.scalar_one()
+    return GefaehrdungsbeurteilungResponse(
+        id=str(gbu_loaded.id),
+        titel=gbu_loaded.titel,
+        arbeitsbereich=gbu_loaded.arbeitsbereich,
+        status=gbu_loaded.status,
+        datum=gbu_loaded.datum,
+        naechste_ueberpruefung_am=gbu_loaded.naechste_ueberpruefung_am,
+        bemerkung=gbu_loaded.bemerkung,
+        gefaehrdungen=[
+            GefaehrdungResponse(
+                id=str(g.id),
+                gbu_id=str(g.gbu_id),
+                gefaehrdung=g.gefaehrdung,
+                risikoklasse=g.risikoklasse,
+                bestehende_massnahmen=g.bestehende_massnahmen,
+                weitere_massnahmen=g.weitere_massnahmen,
+                verantwortlich=g.verantwortlich,
+                frist=g.frist,
+                status=g.status,
+                reihenfolge=g.reihenfolge,
+                created_at=g.created_at,
+            )
+            for g in gbu_loaded.gefaehrdungen
+        ],
+        created_at=gbu_loaded.created_at,
+    )
 
 @router.get("/{gbu_id}", response_model=GefaehrdungsbeurteilungResponse)
 async def get_gbu(
@@ -127,7 +182,32 @@ async def get_gbu(
     gbu = result.scalar_one_or_none()
     if not gbu:
         raise HTTPException(status_code=404, detail="Gefaehrdungsbeurteilung nicht gefunden")
-    return gbu
+    return GefaehrdungsbeurteilungResponse(
+        id=str(gbu.id),
+        titel=gbu.titel,
+        arbeitsbereich=gbu.arbeitsbereich,
+        status=gbu.status,
+        datum=gbu.datum,
+        naechste_ueberpruefung_am=gbu.naechste_ueberpruefung_am,
+        bemerkung=gbu.bemerkung,
+        gefaehrdungen=[
+            GefaehrdungResponse(
+                id=str(g.id),
+                gbu_id=str(g.gbu_id),
+                gefaehrdung=g.gefaehrdung,
+                risikoklasse=g.risikoklasse,
+                bestehende_massnahmen=g.bestehende_massnahmen,
+                weitere_massnahmen=g.weitere_massnahmen,
+                verantwortlich=g.verantwortlich,
+                frist=g.frist,
+                status=g.status,
+                reihenfolge=g.reihenfolge,
+                created_at=g.created_at,
+            )
+            for g in gbu.gefaehrdungen
+        ],
+        created_at=gbu.created_at,
+    )
 
 @router.put("/{gbu_id}", response_model=GefaehrdungsbeurteilungResponse)
 async def update_gbu(
@@ -158,7 +238,33 @@ async def update_gbu(
         .options(selectinload(Gefaehrdungsbeurteilung.gefaehrdungen))
         .where(Gefaehrdungsbeurteilung.id == gbu.id)
     )
-    return result.scalar_one()
+    gbu_loaded = result.scalar_one()
+    return GefaehrdungsbeurteilungResponse(
+        id=str(gbu_loaded.id),
+        titel=gbu_loaded.titel,
+        arbeitsbereich=gbu_loaded.arbeitsbereich,
+        status=gbu_loaded.status,
+        datum=gbu_loaded.datum,
+        naechste_ueberpruefung_am=gbu_loaded.naechste_ueberpruefung_am,
+        bemerkung=gbu_loaded.bemerkung,
+        gefaehrdungen=[
+            GefaehrdungResponse(
+                id=str(g.id),
+                gbu_id=str(g.gbu_id),
+                gefaehrdung=g.gefaehrdung,
+                risikoklasse=g.risikoklasse,
+                bestehende_massnahmen=g.bestehende_massnahmen,
+                weitere_massnahmen=g.weitere_massnahmen,
+                verantwortlich=g.verantwortlich,
+                frist=g.frist,
+                status=g.status,
+                reihenfolge=g.reihenfolge,
+                created_at=g.created_at,
+            )
+            for g in gbu_loaded.gefaehrdungen
+        ],
+        created_at=gbu_loaded.created_at,
+    )
 
 @router.post("/{gbu_id}/gefaehrdungen", response_model=GefaehrdungResponse, status_code=201)
 async def add_gefaehrdung(
@@ -191,7 +297,19 @@ async def add_gefaehrdung(
     db.add(gefaehrdung)
     await db.flush()
     await db.refresh(gefaehrdung)
-    return gefaehrdung
+    return GefaehrdungResponse(
+        id=str(gefaehrdung.id),
+        gbu_id=str(gefaehrdung.gbu_id),
+        gefaehrdung=gefaehrdung.gefaehrdung,
+        risikoklasse=gefaehrdung.risikoklasse,
+        bestehende_massnahmen=gefaehrdung.bestehende_massnahmen,
+        weitere_massnahmen=gefaehrdung.weitere_massnahmen,
+        verantwortlich=gefaehrdung.verantwortlich,
+        frist=gefaehrdung.frist,
+        status=gefaehrdung.status,
+        reihenfolge=gefaehrdung.reihenfolge,
+        created_at=gefaehrdung.created_at,
+    )
 
 @router.put("/{gbu_id}/gefaehrdungen/{gef_id}", response_model=GefaehrdungResponse)
 async def update_gefaehrdung(
@@ -233,7 +351,19 @@ async def update_gefaehrdung(
         setattr(gefaehrdung, field, value)
     await db.flush()
     await db.refresh(gefaehrdung)
-    return gefaehrdung
+    return GefaehrdungResponse(
+        id=str(gefaehrdung.id),
+        gbu_id=str(gefaehrdung.gbu_id),
+        gefaehrdung=gefaehrdung.gefaehrdung,
+        risikoklasse=gefaehrdung.risikoklasse,
+        bestehende_massnahmen=gefaehrdung.bestehende_massnahmen,
+        weitere_massnahmen=gefaehrdung.weitere_massnahmen,
+        verantwortlich=gefaehrdung.verantwortlich,
+        frist=gefaehrdung.frist,
+        status=gefaehrdung.status,
+        reihenfolge=gefaehrdung.reihenfolge,
+        created_at=gefaehrdung.created_at,
+    )
 
 @router.delete("/{gbu_id}", status_code=204)
 async def delete_gbu(

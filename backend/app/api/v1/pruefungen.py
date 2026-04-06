@@ -137,7 +137,9 @@ async def start_pruefung(
         .options(selectinload(Pruefung.pruef_punkte), selectinload(Pruefung.maengel))
         .where(Pruefung.id == pruefung.id)
     )
-    return result.scalar_one()
+    loaded = result.scalar_one()
+    # Construct response model with explicit UUID conversion
+    return PruefungResponse.from_orm(loaded)
 
 
 @router.get("/{pruefung_id}", response_model=PruefungResponse)
@@ -155,7 +157,7 @@ async def get_pruefung(
     pruefung = result.scalar_one_or_none()
     if not pruefung:
         raise HTTPException(status_code=404, detail="Prüfung nicht gefunden")
-    return pruefung
+    return PruefungResponse.from_orm(pruefung)
 
 
 @router.put("/{pruefung_id}/punkte/{punkt_id}")
@@ -217,7 +219,7 @@ async def create_mangel(
     db.add(mangel)
     await db.flush()
     await db.refresh(mangel)
-    return mangel
+    return MangelResponse.from_orm(mangel)
 
 
 @router.put("/{pruefung_id}/abschliessen", response_model=PruefungResponse)
@@ -315,7 +317,7 @@ async def abschliessen(
             else:
                 am.ampel_status = "gruen"
 
-    return pruefung
+    return PruefungResponse.from_orm(pruefung)
 
 
 async def _load_pruefung_for_pdf(pruefung_id: str, db: AsyncSession):

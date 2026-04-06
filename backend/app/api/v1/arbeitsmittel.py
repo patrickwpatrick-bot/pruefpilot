@@ -58,7 +58,30 @@ async def list_arbeitsmittel(
     result = await db.execute(query)
     items = result.scalars().all()
 
-    return ArbeitsmittelListResponse(items=items, total=total)
+    response_items = [
+        ArbeitsmittelResponse(
+            id=str(item.id),
+            name=item.name,
+            typ=item.typ,
+            standort_id=str(item.standort_id) if item.standort_id else None,
+            hersteller=item.hersteller,
+            modell=item.modell,
+            seriennummer=item.seriennummer,
+            baujahr=item.baujahr,
+            foto_url=item.foto_url,
+            beschreibung=item.beschreibung,
+            norm=item.norm,
+            pruef_intervall_monate=item.pruef_intervall_monate,
+            letzte_pruefung_am=item.letzte_pruefung_am,
+            naechste_pruefung_am=item.naechste_pruefung_am,
+            ampel_status=item.ampel_status,
+            qr_code_url=item.qr_code_url,
+            created_at=item.created_at,
+        )
+        for item in items
+    ]
+
+    return ArbeitsmittelListResponse(items=response_items, total=total)
 
 
 @router.post("", response_model=ArbeitsmittelResponse, status_code=status.HTTP_201_CREATED, summary="Create equipment", description="Create a new piece of equipment (Arbeitsmittel) with inspection schedule and metadata.")
@@ -96,7 +119,25 @@ async def create_arbeitsmittel(
         nachher_snapshot=nachher_snapshot,
     )
 
-    return arbeitsmittel
+    return ArbeitsmittelResponse(
+        id=str(arbeitsmittel.id),
+        name=arbeitsmittel.name,
+        typ=arbeitsmittel.typ,
+        standort_id=str(arbeitsmittel.standort_id) if arbeitsmittel.standort_id else None,
+        hersteller=arbeitsmittel.hersteller,
+        modell=arbeitsmittel.modell,
+        seriennummer=arbeitsmittel.seriennummer,
+        baujahr=arbeitsmittel.baujahr,
+        foto_url=arbeitsmittel.foto_url,
+        beschreibung=arbeitsmittel.beschreibung,
+        norm=arbeitsmittel.norm,
+        pruef_intervall_monate=arbeitsmittel.pruef_intervall_monate,
+        letzte_pruefung_am=arbeitsmittel.letzte_pruefung_am,
+        naechste_pruefung_am=arbeitsmittel.naechste_pruefung_am,
+        ampel_status=arbeitsmittel.ampel_status,
+        qr_code_url=arbeitsmittel.qr_code_url,
+        created_at=arbeitsmittel.created_at,
+    )
 
 
 @router.get("/{arbeitsmittel_id}", response_model=ArbeitsmittelResponse, summary="Get equipment", description="Retrieve a single piece of equipment by ID.")
@@ -116,7 +157,25 @@ async def get_arbeitsmittel(
     item = result.scalar_one_or_none()
     if not item:
         raise HTTPException(status_code=404, detail="Arbeitsmittel nicht gefunden")
-    return item
+    return ArbeitsmittelResponse(
+        id=str(item.id),
+        name=item.name,
+        typ=item.typ,
+        standort_id=str(item.standort_id) if item.standort_id else None,
+        hersteller=item.hersteller,
+        modell=item.modell,
+        seriennummer=item.seriennummer,
+        baujahr=item.baujahr,
+        foto_url=item.foto_url,
+        beschreibung=item.beschreibung,
+        norm=item.norm,
+        pruef_intervall_monate=item.pruef_intervall_monate,
+        letzte_pruefung_am=item.letzte_pruefung_am,
+        naechste_pruefung_am=item.naechste_pruefung_am,
+        ampel_status=item.ampel_status,
+        qr_code_url=item.qr_code_url,
+        created_at=item.created_at,
+    )
 
 
 @router.put("/{arbeitsmittel_id}", response_model=ArbeitsmittelResponse, summary="Update equipment", description="Update equipment details. Changes are tracked in the audit log.")
@@ -170,7 +229,25 @@ async def update_arbeitsmittel(
             nachher_snapshot=nachher_snapshot,
         )
 
-    return item
+    return ArbeitsmittelResponse(
+        id=str(item.id),
+        name=item.name,
+        typ=item.typ,
+        standort_id=str(item.standort_id) if item.standort_id else None,
+        hersteller=item.hersteller,
+        modell=item.modell,
+        seriennummer=item.seriennummer,
+        baujahr=item.baujahr,
+        foto_url=item.foto_url,
+        beschreibung=item.beschreibung,
+        norm=item.norm,
+        pruef_intervall_monate=item.pruef_intervall_monate,
+        letzte_pruefung_am=item.letzte_pruefung_am,
+        naechste_pruefung_am=item.naechste_pruefung_am,
+        ampel_status=item.ampel_status,
+        qr_code_url=item.qr_code_url,
+        created_at=item.created_at,
+    )
 
 
 @router.delete("/{arbeitsmittel_id}", status_code=status.HTTP_204_NO_CONTENT, summary="Delete equipment", description="Soft-delete a piece of equipment (marked as deleted, not permanently removed). This action is recorded in the audit log.")
@@ -566,6 +643,26 @@ async def bulk_update_arbeitsmittel(
                 nachher_snapshot=nachher_snapshot,
             )
 
-        updated_items.append(item)
+        updated_items.append(
+            ArbeitsmittelResponse(
+                id=str(item.id),
+                name=item.name,
+                typ=item.typ,
+                standort_id=str(item.standort_id) if item.standort_id else None,
+                hersteller=item.hersteller,
+                modell=item.modell,
+                seriennummer=item.seriennummer,
+                baujahr=item.baujahr,
+                foto_url=item.foto_url,
+                beschreibung=item.beschreibung,
+                norm=item.norm,
+                pruef_intervall_monate=item.pruef_intervall_monate,
+                letzte_pruefung_am=item.letzte_pruefung_am,
+                naechste_pruefung_am=item.naechste_pruefung_am,
+                ampel_status=item.ampel_status,
+                qr_code_url=item.qr_code_url,
+                created_at=item.created_at,
+            )
+        )
 
     return updated_items

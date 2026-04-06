@@ -152,7 +152,27 @@ async def list_gefahrstoffe(
         .where(Gefahrstoff.organisation_id == org_id)
         .order_by(Gefahrstoff.name)
     )
-    return result.scalars().all()
+    items = result.scalars().all()
+    return [
+        GefahrstoffResponse(
+            id=str(item.id),
+            name=item.name,
+            hersteller=item.hersteller,
+            cas_nummer=item.cas_nummer,
+            gefahrenklasse=item.gefahrenklasse,
+            h_saetze=item.h_saetze,
+            p_saetze=item.p_saetze,
+            signalwort=item.signalwort,
+            lagerort=item.lagerort,
+            menge=item.menge,
+            foto_url=item.foto_url,
+            sicherheitsdatenblatt_url=item.sicherheitsdatenblatt_url,
+            betriebsanweisung_text=item.betriebsanweisung_text,
+            letzte_aktualisierung=item.letzte_aktualisierung,
+            created_at=item.created_at,
+        )
+        for item in items
+    ]
 
 @router.post("", response_model=GefahrstoffResponse, status_code=201)
 async def create_gefahrstoff(
@@ -184,7 +204,23 @@ async def create_gefahrstoff(
         nachher_snapshot=nachher_snapshot,
     )
 
-    return gefahrstoff
+    return GefahrstoffResponse(
+        id=str(gefahrstoff.id),
+        name=gefahrstoff.name,
+        hersteller=gefahrstoff.hersteller,
+        cas_nummer=gefahrstoff.cas_nummer,
+        gefahrenklasse=gefahrstoff.gefahrenklasse,
+        h_saetze=gefahrstoff.h_saetze,
+        p_saetze=gefahrstoff.p_saetze,
+        signalwort=gefahrstoff.signalwort,
+        lagerort=gefahrstoff.lagerort,
+        menge=gefahrstoff.menge,
+        foto_url=gefahrstoff.foto_url,
+        sicherheitsdatenblatt_url=gefahrstoff.sicherheitsdatenblatt_url,
+        betriebsanweisung_text=gefahrstoff.betriebsanweisung_text,
+        letzte_aktualisierung=gefahrstoff.letzte_aktualisierung,
+        created_at=gefahrstoff.created_at,
+    )
 
 @router.put("/{stoff_id}", response_model=GefahrstoffResponse)
 async def update_gefahrstoff(
@@ -237,7 +273,23 @@ async def update_gefahrstoff(
             nachher_snapshot=nachher_snapshot,
         )
 
-    return gefahrstoff
+    return GefahrstoffResponse(
+        id=str(gefahrstoff.id),
+        name=gefahrstoff.name,
+        hersteller=gefahrstoff.hersteller,
+        cas_nummer=gefahrstoff.cas_nummer,
+        gefahrenklasse=gefahrstoff.gefahrenklasse,
+        h_saetze=gefahrstoff.h_saetze,
+        p_saetze=gefahrstoff.p_saetze,
+        signalwort=gefahrstoff.signalwort,
+        lagerort=gefahrstoff.lagerort,
+        menge=gefahrstoff.menge,
+        foto_url=gefahrstoff.foto_url,
+        sicherheitsdatenblatt_url=gefahrstoff.sicherheitsdatenblatt_url,
+        betriebsanweisung_text=gefahrstoff.betriebsanweisung_text,
+        letzte_aktualisierung=gefahrstoff.letzte_aktualisierung,
+        created_at=gefahrstoff.created_at,
+    )
 
 @router.delete("/{stoff_id}", status_code=204)
 async def delete_gefahrstoff(
@@ -297,4 +349,20 @@ async def generate_betriebsanweisung(
     gefahrstoff.letzte_aktualisierung = date.today()
     await db.flush()
     await db.refresh(gefahrstoff)
-    return gefahrstoff
+    return GefahrstoffResponse(
+        id=str(gefahrstoff.id),
+        name=gefahrstoff.name,
+        hersteller=gefahrstoff.hersteller,
+        cas_nummer=gefahrstoff.cas_nummer,
+        gefahrenklasse=gefahrstoff.gefahrenklasse,
+        h_saetze=gefahrstoff.h_saetze,
+        p_saetze=gefahrstoff.p_saetze,
+        signalwort=gefahrstoff.signalwort,
+        lagerort=gefahrstoff.lagerort,
+        menge=gefahrstoff.menge,
+        foto_url=gefahrstoff.foto_url,
+        sicherheitsdatenblatt_url=gefahrstoff.sicherheitsdatenblatt_url,
+        betriebsanweisung_text=gefahrstoff.betriebsanweisung_text,
+        letzte_aktualisierung=gefahrstoff.letzte_aktualisierung,
+        created_at=gefahrstoff.created_at,
+    )

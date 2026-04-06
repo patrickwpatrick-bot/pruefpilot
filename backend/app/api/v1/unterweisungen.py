@@ -164,7 +164,18 @@ async def list_unterweisungen(
     # Map vorlage names to responses
     durchfuehrungen_response = []
     for d in durchfuehrungen:
-        response = UnterweisungsDurchfuehrungResponse.model_validate(d)
+        response = UnterweisungsDurchfuehrungResponse(
+            id=str(d.id),
+            vorlage_id=str(d.vorlage_id),
+            teilnehmer_name=d.teilnehmer_name,
+            teilnehmer_email=d.teilnehmer_email,
+            datum=d.datum,
+            unterschrift_name=d.unterschrift_name,
+            bemerkung=d.bemerkung,
+            naechste_unterweisung_am=d.naechste_unterweisung_am,
+            vorlage_name=None,
+            created_at=d.created_at,
+        )
         if d.vorlage:
             response.vorlage_name = d.vorlage.name
         durchfuehrungen_response.append(response)
@@ -190,9 +201,21 @@ async def list_unterweisungen(
         completed_count = completed_result.scalar() or 0
         compliance_prozent = int((completed_count / zuweisungs_count * 100) if zuweisungs_count > 0 else 0)
 
-        resp = UnterweisungsVorlageResponse.model_validate(v)
-        resp.zuweisungs_count = zuweisungs_count
-        resp.compliance_prozent = compliance_prozent
+        resp = UnterweisungsVorlageResponse(
+            id=str(v.id),
+            name=v.name,
+            beschreibung=v.beschreibung,
+            kategorie=v.kategorie,
+            inhalt=v.inhalt,
+            ist_system_template=v.ist_system_template,
+            intervall_monate=v.intervall_monate,
+            norm_referenz=v.norm_referenz,
+            betroffene_qualifikationen=v.betroffene_qualifikationen,
+            ist_pflicht_fuer_alle=v.ist_pflicht_fuer_alle,
+            created_at=v.created_at,
+            zuweisungs_count=zuweisungs_count,
+            compliance_prozent=compliance_prozent,
+        )
         vorlagen_response.append(resp)
 
     return UnterweisungenListResponse(
@@ -235,9 +258,21 @@ async def list_vorlagen(
         completed_count = completed_result.scalar() or 0
         compliance_prozent = int((completed_count / zuweisungs_count * 100) if zuweisungs_count > 0 else 0)
 
-        resp = UnterweisungsVorlageResponse.model_validate(v)
-        resp.zuweisungs_count = zuweisungs_count
-        resp.compliance_prozent = compliance_prozent
+        resp = UnterweisungsVorlageResponse(
+            id=str(v.id),
+            name=v.name,
+            beschreibung=v.beschreibung,
+            kategorie=v.kategorie,
+            inhalt=v.inhalt,
+            ist_system_template=v.ist_system_template,
+            intervall_monate=v.intervall_monate,
+            norm_referenz=v.norm_referenz,
+            betroffene_qualifikationen=v.betroffene_qualifikationen,
+            ist_pflicht_fuer_alle=v.ist_pflicht_fuer_alle,
+            created_at=v.created_at,
+            zuweisungs_count=zuweisungs_count,
+            compliance_prozent=compliance_prozent,
+        )
         vorlagen_response.append(resp)
 
     return vorlagen_response
@@ -265,7 +300,24 @@ async def create_vorlage(
     await db.flush()
     await db.refresh(vorlage)
     await db.commit()
-    return vorlage
+
+    # Construct response with explicit str() wrapping on UUID fields
+    resp = UnterweisungsVorlageResponse(
+        id=str(vorlage.id),
+        name=vorlage.name,
+        beschreibung=vorlage.beschreibung,
+        kategorie=vorlage.kategorie,
+        inhalt=vorlage.inhalt,
+        ist_system_template=vorlage.ist_system_template,
+        intervall_monate=vorlage.intervall_monate,
+        norm_referenz=vorlage.norm_referenz,
+        betroffene_qualifikationen=vorlage.betroffene_qualifikationen,
+        ist_pflicht_fuer_alle=vorlage.ist_pflicht_fuer_alle,
+        created_at=vorlage.created_at,
+        zuweisungs_count=0,
+        compliance_prozent=0,
+    )
+    return resp
 
 
 @router.get("/vorlagen/{vorlage_id}", response_model=UnterweisungsVorlageResponse)
@@ -303,9 +355,21 @@ async def get_vorlage(
     completed_count = completed_result.scalar() or 0
     compliance_prozent = int((completed_count / zuweisungs_count * 100) if zuweisungs_count > 0 else 0)
 
-    resp = UnterweisungsVorlageResponse.model_validate(vorlage)
-    resp.zuweisungs_count = zuweisungs_count
-    resp.compliance_prozent = compliance_prozent
+    resp = UnterweisungsVorlageResponse(
+        id=str(vorlage.id),
+        name=vorlage.name,
+        beschreibung=vorlage.beschreibung,
+        kategorie=vorlage.kategorie,
+        inhalt=vorlage.inhalt,
+        ist_system_template=vorlage.ist_system_template,
+        intervall_monate=vorlage.intervall_monate,
+        norm_referenz=vorlage.norm_referenz,
+        betroffene_qualifikationen=vorlage.betroffene_qualifikationen,
+        ist_pflicht_fuer_alle=vorlage.ist_pflicht_fuer_alle,
+        created_at=vorlage.created_at,
+        zuweisungs_count=zuweisungs_count,
+        compliance_prozent=compliance_prozent,
+    )
     return resp
 
 
@@ -351,9 +415,21 @@ async def update_vorlage(
     completed_count = completed_result.scalar() or 0
     compliance_prozent = int((completed_count / zuweisungs_count * 100) if zuweisungs_count > 0 else 0)
 
-    resp = UnterweisungsVorlageResponse.model_validate(vorlage)
-    resp.zuweisungs_count = zuweisungs_count
-    resp.compliance_prozent = compliance_prozent
+    resp = UnterweisungsVorlageResponse(
+        id=str(vorlage.id),
+        name=vorlage.name,
+        beschreibung=vorlage.beschreibung,
+        kategorie=vorlage.kategorie,
+        inhalt=vorlage.inhalt,
+        ist_system_template=vorlage.ist_system_template,
+        intervall_monate=vorlage.intervall_monate,
+        norm_referenz=vorlage.norm_referenz,
+        betroffene_qualifikationen=vorlage.betroffene_qualifikationen,
+        ist_pflicht_fuer_alle=vorlage.ist_pflicht_fuer_alle,
+        created_at=vorlage.created_at,
+        zuweisungs_count=zuweisungs_count,
+        compliance_prozent=compliance_prozent,
+    )
     return resp
 
 
@@ -422,7 +498,18 @@ async def create_durchfuehrung(
     )
     durchfuehrung_loaded = result.scalar_one()
 
-    response = UnterweisungsDurchfuehrungResponse.model_validate(durchfuehrung_loaded)
+    response = UnterweisungsDurchfuehrungResponse(
+        id=str(durchfuehrung_loaded.id),
+        vorlage_id=str(durchfuehrung_loaded.vorlage_id),
+        teilnehmer_name=durchfuehrung_loaded.teilnehmer_name,
+        teilnehmer_email=durchfuehrung_loaded.teilnehmer_email,
+        datum=durchfuehrung_loaded.datum,
+        unterschrift_name=durchfuehrung_loaded.unterschrift_name,
+        bemerkung=durchfuehrung_loaded.bemerkung,
+        naechste_unterweisung_am=durchfuehrung_loaded.naechste_unterweisung_am,
+        vorlage_name=None,
+        created_at=durchfuehrung_loaded.created_at,
+    )
     if durchfuehrung_loaded.vorlage:
         response.vorlage_name = durchfuehrung_loaded.vorlage.name
     return response
@@ -444,7 +531,18 @@ async def list_durchfuehrungen(
 
     responses = []
     for d in durchfuehrungen:
-        response = UnterweisungsDurchfuehrungResponse.model_validate(d)
+        response = UnterweisungsDurchfuehrungResponse(
+            id=str(d.id),
+            vorlage_id=str(d.vorlage_id),
+            teilnehmer_name=d.teilnehmer_name,
+            teilnehmer_email=d.teilnehmer_email,
+            datum=d.datum,
+            unterschrift_name=d.unterschrift_name,
+            bemerkung=d.bemerkung,
+            naechste_unterweisung_am=d.naechste_unterweisung_am,
+            vorlage_name=None,
+            created_at=d.created_at,
+        )
         if d.vorlage:
             response.vorlage_name = d.vorlage.name
         responses.append(response)
@@ -473,10 +571,10 @@ async def list_zuweisungen(
     responses = []
     for z in zuweisungen:
         resp = UnterweisungsZuweisungResponse(
-            id=z.id,
-            vorlage_id=z.vorlage_id,
+            id=str(z.id),
+            vorlage_id=str(z.vorlage_id),
             vorlage_name=z.vorlage.name if z.vorlage else "—",
-            mitarbeiter_id=z.mitarbeiter_id,
+            mitarbeiter_id=str(z.mitarbeiter_id),
             mitarbeiter_name=f"{z.mitarbeiter.vorname} {z.mitarbeiter.nachname}" if z.mitarbeiter else "—",
             status=z.status,
             faellig_am=z.faellig_am,
@@ -573,7 +671,7 @@ async def get_compliance_matrix(
                 status_color = "offen"
 
             vorlage_statuses.append(ComplianceVorlageStatus(
-                vorlage_id=z.vorlage_id,
+                vorlage_id=str(z.vorlage_id),
                 vorlage_name=z.vorlage.name if z.vorlage else "—",
                 status=status_color,
                 unterschrieben_am=z.unterschrieben_am,
@@ -583,7 +681,7 @@ async def get_compliance_matrix(
         gesamt_prozent = int((completed / total_zuweisungen * 100) if total_zuweisungen > 0 else 100)
 
         row = ComplianceMatrixRow(
-            mitarbeiter_id=m.id,
+            mitarbeiter_id=str(m.id),
             mitarbeiter_name=f"{m.vorname} {m.nachname}",
             abteilung=m.abteilung.name if m.abteilung else None,
             vorlagen=vorlage_statuses,

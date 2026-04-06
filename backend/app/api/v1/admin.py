@@ -95,7 +95,19 @@ async def list_all_users(
         .order_by(User.created_at.desc())
     )
     result = await db.execute(query)
-    return result.scalars().all()
+    users = result.scalars().all()
+    return [
+        UserListResponse(
+            id=str(u.id),
+            email=u.email,
+            vorname=u.vorname,
+            nachname=u.nachname,
+            rolle=u.rolle,
+            ist_aktiv=u.ist_aktiv,
+            created_at=u.created_at,
+        )
+        for u in users
+    ]
 
 
 @router.get(
@@ -119,7 +131,17 @@ async def get_user_details(
     user = result.scalar_one_or_none()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
-    return user
+    return UserDetailResponse(
+        id=str(user.id),
+        email=user.email,
+        vorname=user.vorname,
+        nachname=user.nachname,
+        rolle=user.rolle,
+        ist_aktiv=user.ist_aktiv,
+        created_at=user.created_at,
+        organisation_id=str(user.organisation_id),
+        updated_at=user.updated_at,
+    )
 
 
 @router.post(
@@ -159,7 +181,17 @@ async def create_user_admin(
     db.add(user)
     await db.flush()
     await db.refresh(user)
-    return user
+    return UserDetailResponse(
+        id=str(user.id),
+        email=user.email,
+        vorname=user.vorname,
+        nachname=user.nachname,
+        rolle=user.rolle,
+        ist_aktiv=user.ist_aktiv,
+        created_at=user.created_at,
+        organisation_id=str(user.organisation_id),
+        updated_at=user.updated_at,
+    )
 
 
 @router.put(
@@ -197,7 +229,17 @@ async def update_user_admin(
 
     await db.flush()
     await db.refresh(user)
-    return user
+    return UserDetailResponse(
+        id=str(user.id),
+        email=user.email,
+        vorname=user.vorname,
+        nachname=user.nachname,
+        rolle=user.rolle,
+        ist_aktiv=user.ist_aktiv,
+        created_at=user.created_at,
+        organisation_id=str(user.organisation_id),
+        updated_at=user.updated_at,
+    )
 
 
 @router.delete(
@@ -260,7 +302,7 @@ async def get_organisation_stats(
     active_users = (await db.execute(active_query)).scalar()
 
     return OrganisationStatsResponse(
-        id=org.id,
+        id=str(org.id),
         name=org.name,
         branche=org.branche,
         plan=org.plan,
