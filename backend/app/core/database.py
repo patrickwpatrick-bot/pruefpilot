@@ -20,9 +20,11 @@ if settings.DATABASE_URL.startswith("sqlite"):
 elif _is_serverless:
     # Serverless: NullPool — jede Request öffnet/schließt eigene Connection
     # Supabase Pooler (port 6543) handelt Connection-Pooling
+    # WICHTIG: pgbouncer (Transaction Mode) unterstützt keine Prepared Statements
     _engine_kwargs.update(
         poolclass=NullPool,
         pool_pre_ping=True,
+        connect_args={"prepared_statement_cache_size": 0},
     )
 else:
     # Lokale Entwicklung / Docker: normaler Pool
