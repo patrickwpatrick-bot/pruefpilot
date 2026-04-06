@@ -17,22 +17,23 @@ _engine_kwargs: dict = {"echo": settings.DEBUG}
 if settings.DATABASE_URL.startswith("sqlite"):
     # SQLite (Tests) — kein Pool nötig
     pass
-elif _is_serverless:
-    # Serverless: NullPool — jede Request öffnet/schließt eigene Connection
-    # Supabase Pooler (port 6543) handelt Connection-Pooling
-    # WICHTIG: pgbouncer (Transaction Mode) unterstützt keine Prepared Statements
+else:
+    # PostgreSQL — IMMER statement_cache_size=0 weil Supabase pgbouncer
+    # (Transaction Mode) keine Prepared Statements unterstützt.
+    # Ohne diesen Fix schlagen ALLE DB-Queries fehl.
     _engine_kwargs.update(
-        poolclass=NullPool,
         pool_pre_ping=True,
         connect_args={"statement_cache_size": 0},
     )
-else:
-    # Lokale Entwicklung / Docker: normaler Pool
-    _engine_kwargs.update(
-        pool_pre_ping=True,
-        pool_size=10,
-        max_overflow=20,
-    )
+    if _is_serverless:
+        # Serverless: NullPool — Supabase Pooler handelt Connection-Pooling
+        _engine_kwargs["poolclass"] = NullPool
+    else:
+        # Lokale Entwicklung / Docker: normaler Pool
+        _engine_kwargs.update(
+            pool_size=10,
+            max_overflow=20,
+        )
 
 engine = create_async_engine(settings.DATABASE_URL, **_engine_kwargs)
 
