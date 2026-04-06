@@ -2,7 +2,6 @@
 PrüfPilot - Application Configuration
 """
 import json
-from pydantic import field_validator
 from pydantic_settings import BaseSettings
 from typing import List
 
@@ -27,16 +26,13 @@ class Settings(BaseSettings):
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
 
     # CORS — unterstützt JSON-Array oder Komma-getrennte Strings
-    CORS_ORIGINS: List[str] = [
-        "http://localhost:5173",
-        "http://localhost:3000",
-        "https://pruefpilot.vercel.app",
-    ]
+    # Typ ist str damit pydantic-settings v2 nicht vorab JSON-parst
+    CORS_ORIGINS: str = '["http://localhost:5173","http://localhost:3000","https://pruefpilot.vercel.app"]'
 
-    @field_validator("CORS_ORIGINS", mode="before")
-    @classmethod
-    def parse_cors_origins(cls, v):
-        """Parse CORS_ORIGINS: JSON-Array oder Komma-getrennte Strings."""
+    @property
+    def cors_origins_list(self) -> List[str]:
+        """Parse CORS_ORIGINS to list: JSON-Array oder Komma-getrennte Strings."""
+        v = self.CORS_ORIGINS
         if isinstance(v, list):
             return v
         if isinstance(v, str):
@@ -47,7 +43,7 @@ class Settings(BaseSettings):
             except (json.JSONDecodeError, TypeError):
                 pass
             return [origin.strip() for origin in v.split(",") if origin.strip()]
-        return v
+        return [str(v)]
 
     # S3 Storage
     S3_ENDPOINT: str = ""
