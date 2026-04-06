@@ -176,9 +176,11 @@ export function OnboardingPage() {
     navigate('/login?register=1')
   }
 
-  // Grid layout basierend auf Optionen
+  // Grid layout basierend auf Optionen — immer 2 Spalten für sauberes Layout
   const optionCount = step.options.length
   const gridClass = optionCount <= 4
+    ? 'grid-cols-1 sm:grid-cols-2'
+    : optionCount === 5
     ? 'grid-cols-1 sm:grid-cols-2'
     : 'grid-cols-1 sm:grid-cols-2 md:grid-cols-3'
 
@@ -241,9 +243,11 @@ export function OnboardingPage() {
 
             {/* Options Grid */}
             <div className={`grid ${gridClass} gap-2.5`}>
-              {step.options.map((option) => {
+              {step.options.map((option, optIdx) => {
                 const selected = isSelected(option.id)
                 const Icon = option.icon
+                // Letzte Karte bei ungerader Anzahl in 2-Spalten-Grid zentrieren
+                const isLastOdd = optionCount % 2 === 1 && optIdx === optionCount - 1 && optionCount > 2
                 return (
                   <button
                     key={option.id}
@@ -251,8 +255,8 @@ export function OnboardingPage() {
                     className={`relative flex items-start gap-3 p-3.5 rounded-xl border text-left transition-all ${
                       selected
                         ? 'border-gray-900 bg-gray-50'
-                        : 'border-gray-150 hover:border-gray-300'
-                    }`}
+                        : 'border-gray-200 hover:border-gray-300'
+                    } ${isLastOdd ? 'sm:col-start-1 sm:col-end-3 sm:max-w-[50%] sm:mx-auto sm:w-full' : ''}`}
                   >
                     {Icon && (
                       <div className={`flex-shrink-0 mt-0.5 ${selected ? 'text-gray-900' : 'text-gray-300'}`}>

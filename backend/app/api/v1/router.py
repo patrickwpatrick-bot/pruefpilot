@@ -22,6 +22,7 @@ from app.api.v1.branchen import router as branchen_router
 from app.api.v1.compliance import router as compliance_router
 from app.api.v1.billing import router as billing_router
 from app.api.v1.formulare import router as formulare_router
+from app.api.v1.admin import router as admin_router
 
 api_router = APIRouter(prefix="/api/v1")
 
@@ -45,3 +46,4 @@ api_router.include_router(upload_router)
 api_router.include_router(compliance_router)
 api_router.include_router(billing_router)
 api_router.include_router(formulare_router)
+api_router.include_router(admin_router)

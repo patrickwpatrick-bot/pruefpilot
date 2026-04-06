@@ -8,15 +8,11 @@ from pydantic import BaseModel
 from typing import Optional, List
 import json
 from app.core.database import get_db
-from app.core.security import decode_token
+from app.core.security import get_current_org_id, get_current_user_id
 from app.core.audit import log_audit, compute_changes
 from app.models.organisation import Organisation
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
 router = APIRouter(prefix="/organisation", tags=["Organisation"])
-security = HTTPBearer()
-
-
 class OrganisationResponse(BaseModel):
     id: str
     name: str
@@ -35,7 +31,6 @@ class OrganisationResponse(BaseModel):
     class Config:
         from_attributes = True
 
-
 class OrganisationUpdate(BaseModel):
     name: Optional[str] = None
     strasse: Optional[str] = None
@@ -48,17 +43,6 @@ class OrganisationUpdate(BaseModel):
     verantwortlicher_email: Optional[str] = None
     verantwortlicher_telefon: Optional[str] = None
     logo_url: Optional[str] = None
-
-
-async def _get_org_id(credentials: HTTPAuthorizationCredentials = Depends(security)) -> str:
-    payload = decode_token(credentials.credentials)
-    return payload.get("org")
-
-
-async def _get_user_id(credentials: HTTPAuthorizationCredentials = Depends(security)) -> str:
-    payload = decode_token(credentials.credentials)
-    return payload.get("sub")
-
 
 def _org_to_response(org: Organisation) -> OrganisationResponse:
     berufe = []
@@ -77,10 +61,9 @@ def _org_to_response(org: Organisation) -> OrganisationResponse:
         logo_url=org.logo_url,
     )
 
-
 @router.get("", response_model=OrganisationResponse)
 async def get_organisation(
-    org_id: str = Depends(_get_org_id),
+    org_id: str = Depends(get_current_org_id),
     db: AsyncSession = Depends(get_db),
 ):
     """Get current organisation details."""
@@ -90,12 +73,11 @@ async def get_organisation(
         raise HTTPException(status_code=404, detail="Organisation nicht gefunden")
     return _org_to_response(org)
 
-
 @router.put("", response_model=OrganisationResponse)
 async def update_organisation(
     data: OrganisationUpdate,
-    org_id: str = Depends(_get_org_id),
-    user_id: str = Depends(_get_user_id),
+    org_id: str = Depends(get_current_org_id),
+    user_id: str = Depends(get_current_user_id),
     db: AsyncSession = Depends(get_db),
 ):
     """Update organisation / company data."""
@@ -137,16 +119,14 @@ async def update_organisation(
 
     return _org_to_response(org)
 
-
 # ---- Berufe management ----
 
 class BerufeUpdate(BaseModel):
     berufe: List[str]
 
-
 @router.get("/berufe", response_model=List[str])
 async def get_berufe(
-    org_id: str = Depends(_get_org_id),
+    org_id: str = Depends(get_current_org_id),
     db: AsyncSession = Depends(get_db),
 ):
     """Get configured job titles for this organisation."""
@@ -159,11 +139,10 @@ async def get_berufe(
     except Exception:
         return []
 
-
 @router.put("/berufe", response_model=List[str])
 async def update_berufe(
     data: BerufeUpdate,
-    org_id: str = Depends(_get_org_id),
+    org_id: str = Depends(get_current_org_id),
     db: AsyncSession = Depends(get_db),
 ):
     """Set the list of job titles for this organisation."""

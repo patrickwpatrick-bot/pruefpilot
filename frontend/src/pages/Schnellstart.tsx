@@ -70,8 +70,11 @@ export function SchnellstartPage() {
         telefon: telefon.trim() || undefined,
         verantwortlicher_name: verantwortlicher.trim() || undefined,
       })
-      setStep(2)
-    } catch { /* ignore */ }
+    } catch {
+      // API-Fehler ignorieren — Daten können später in Einstellungen nachgetragen werden
+    }
+    // Immer zum nächsten Schritt weiter, auch bei API-Fehler
+    setStep(2)
     setSaving(false)
   }
 
@@ -81,16 +84,18 @@ export function SchnellstartPage() {
     try {
       for (const s of standorte) {
         if (!s.name.trim()) continue
-        await api.post('/standorte', {
-          name: s.name.trim(),
-          ort: s.ort.trim() || undefined,
-          gebaeude: s.gebaeude.trim() || undefined,
-        })
-        count++
+        try {
+          await api.post('/standorte', {
+            name: s.name.trim(),
+            ort: s.ort.trim() || undefined,
+            gebaeude: s.gebaeude.trim() || undefined,
+          })
+          count++
+        } catch { /* einzelnen Standort-Fehler ignorieren */ }
       }
-      setSavedStandorte(count)
-      setStep(3)
     } catch { /* ignore */ }
+    setSavedStandorte(count)
+    setStep(3)
     setSaving(false)
   }
 
@@ -98,14 +103,11 @@ export function SchnellstartPage() {
     setSaving(true)
     try {
       await api.patch('/organisation', { branche: branche || null })
-      // Seed branchen-specific checklisten
       if (branche) {
-        try {
-          await api.post('/seed/branchen-checklisten')
-        } catch { /* ignore */ }
+        try { await api.post('/seed/branchen-checklisten') } catch { /* ignore */ }
       }
-      setStep(4)
     } catch { /* ignore */ }
+    setStep(4)
     setSaving(false)
   }
 

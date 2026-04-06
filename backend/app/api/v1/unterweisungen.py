@@ -12,15 +12,13 @@ import io
 import json
 import re
 from app.core.database import get_db
-from app.core.security import decode_token
+from app.core.security import get_current_org_id
 from app.core.config import settings
 from app.models.unterweisung import UnterweisungsVorlage, UnterweisungsDurchfuehrung
 from app.models.unterweisungs_zuweisung import UnterweisungsZuweisung
 from app.models.mitarbeiter import Mitarbeiter
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
 router = APIRouter(prefix="/unterweisungen", tags=["Unterweisungen"])
-security = HTTPBearer()
 
 
 # --- Schemas ---
@@ -137,14 +135,9 @@ class UnterweisungenListResponse(BaseModel):
     durchfuehrungen: list[UnterweisungsDurchfuehrungResponse] = []
 
 
-async def _get_org_id(credentials: HTTPAuthorizationCredentials = Depends(security)) -> str:
-    payload = decode_token(credentials.credentials)
-    return payload.get("org")
-
-
 @router.get("", response_model=UnterweisungenListResponse)
 async def list_unterweisungen(
-    org_id: str = Depends(_get_org_id),
+    org_id: str = Depends(get_current_org_id),
     db: AsyncSession = Depends(get_db),
 ):
     """List all training templates (org-specific + system) and completion records."""
@@ -208,10 +201,52 @@ async def list_unterweisungen(
     )
 
 
+@router.get("/vorlagen", response_model=list[UnterweisungsVorlageResponse])
+async def list_vorlagen(
+    org_id: str = Depends(get_current_org_id),
+    db: AsyncSession = Depends(get_db),
+):
+    """List all training templates for the organisation."""
+    result = await db.execute(
+        select(UnterweisungsVorlage)
+        .where(
+            (UnterweisungsVorlage.organisation_id == org_id)
+            | (UnterweisungsVorlage.ist_system_template == True)
+        )
+        .order_by(UnterweisungsVorlage.name)
+    )
+    vorlagen = result.scalars().all()
+
+    vorlagen_response = []
+    for v in vorlagen:
+        zuweisungen_result = await db.execute(
+            select(func.count(UnterweisungsZuweisung.id)).where(
+                UnterweisungsZuweisung.vorlage_id == v.id
+            )
+        )
+        zuweisungs_count = zuweisungen_result.scalar() or 0
+
+        completed_result = await db.execute(
+            select(func.count(UnterweisungsZuweisung.id)).where(
+                UnterweisungsZuweisung.vorlage_id == v.id,
+                UnterweisungsZuweisung.status == "unterschrieben"
+            )
+        )
+        completed_count = completed_result.scalar() or 0
+        compliance_prozent = int((completed_count / zuweisungs_count * 100) if zuweisungs_count > 0 else 0)
+
+        resp = UnterweisungsVorlageResponse.model_validate(v)
+        resp.zuweisungs_count = zuweisungs_count
+        resp.compliance_prozent = compliance_prozent
+        vorlagen_response.append(resp)
+
+    return vorlagen_response
+
+
 @router.post("/vorlagen", response_model=UnterweisungsVorlageResponse, status_code=201)
 async def create_vorlage(
     data: UnterweisungsVorlageCreate,
-    org_id: str = Depends(_get_org_id),
+    org_id: str = Depends(get_current_org_id),
     db: AsyncSession = Depends(get_db),
 ):
     """Create a new training template."""
@@ -229,13 +264,14 @@ async def create_vorlage(
     db.add(vorlage)
     await db.flush()
     await db.refresh(vorlage)
+    await db.commit()
     return vorlage
 
 
 @router.get("/vorlagen/{vorlage_id}", response_model=UnterweisungsVorlageResponse)
 async def get_vorlage(
     vorlage_id: str,
-    org_id: str = Depends(_get_org_id),
+    org_id: str = Depends(get_current_org_id),
     db: AsyncSession = Depends(get_db),
 ):
     """Get a single training template with compliance stats."""
@@ -277,7 +313,7 @@ async def get_vorlage(
 async def update_vorlage(
     vorlage_id: str,
     data: UnterweisungsVorlageUpdate,
-    org_id: str = Depends(_get_org_id),
+    org_id: str = Depends(get_current_org_id),
     db: AsyncSession = Depends(get_db),
 ):
     """Update a training template."""
@@ -324,7 +360,7 @@ async def update_vorlage(
 @router.delete("/vorlagen/{vorlage_id}", status_code=204)
 async def delete_vorlage(
     vorlage_id: str,
-    org_id: str = Depends(_get_org_id),
+    org_id: str = Depends(get_current_org_id),
     db: AsyncSession = Depends(get_db),
 ):
     """Delete a training template (only non-system templates)."""
@@ -344,7 +380,7 @@ async def delete_vorlage(
 @router.post("/durchfuehrungen", response_model=UnterweisungsDurchfuehrungResponse, status_code=201)
 async def create_durchfuehrung(
     data: UnterweisungsDurchfuehrungCreate,
-    org_id: str = Depends(_get_org_id),
+    org_id: str = Depends(get_current_org_id),
     db: AsyncSession = Depends(get_db),
 ):
     """Record a training completion."""
@@ -394,7 +430,7 @@ async def create_durchfuehrung(
 
 @router.get("/durchfuehrungen", response_model=list[UnterweisungsDurchfuehrungResponse])
 async def list_durchfuehrungen(
-    org_id: str = Depends(_get_org_id),
+    org_id: str = Depends(get_current_org_id),
     db: AsyncSession = Depends(get_db),
 ):
     """List all training completions for the org with vorlage name via join."""
@@ -419,7 +455,7 @@ async def list_durchfuehrungen(
 
 @router.get("/zuweisungen", response_model=list[UnterweisungsZuweisungResponse])
 async def list_zuweisungen(
-    org_id: str = Depends(_get_org_id),
+    org_id: str = Depends(get_current_org_id),
     db: AsyncSession = Depends(get_db),
 ):
     """List all training assignments for the org with vorlage and mitarbeiter names."""
@@ -454,7 +490,7 @@ async def list_zuweisungen(
 @router.post("/zuweisungen/versenden", status_code=201)
 async def mass_assign_zuweisungen(
     data: MassAssignRequest,
-    org_id: str = Depends(_get_org_id),
+    org_id: str = Depends(get_current_org_id),
     db: AsyncSession = Depends(get_db),
 ):
     """Mass-assign a training template to multiple employees."""
@@ -502,7 +538,7 @@ async def mass_assign_zuweisungen(
 
 @router.get("/compliance-matrix", response_model=list[ComplianceMatrixRow])
 async def get_compliance_matrix(
-    org_id: str = Depends(_get_org_id),
+    org_id: str = Depends(get_current_org_id),
     db: AsyncSession = Depends(get_db),
 ):
     """Return per-mitarbeiter compliance status across all vorlagen."""
@@ -615,7 +651,7 @@ def _parse_ai_response_to_blocks(text: str) -> list:
 @router.post("/ai-generate")
 async def ai_generate(
     request: AIGenerateRequest,
-    credentials: HTTPAuthorizationCredentials = Depends(security),
+    org_id: str = Depends(get_current_org_id),
 ):
     """Generate a training instruction draft using Claude AI."""
     if not settings.ANTHROPIC_API_KEY:
@@ -658,16 +694,18 @@ Format: Verwende Markdown mit ##, ###, -, 1. etc. Kein HTML."""
 
         return {"blocks": blocks, "raw": response_text}
 
-    except ImportError:
-        raise HTTPException(status_code=500, detail="anthropic Paket nicht installiert. Bitte 'pip install anthropic' ausführen.")
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"KI-Generierung fehlgeschlagen: {str(e)}")
+    except ImportError as e:
+        raise HTTPException(status_code=500, detail="anthropic Paket nicht installiert. Bitte 'pip install anthropic' ausführen.") from e
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=f"Ungültige Anfrage: {str(e)}") from e
+    except RuntimeError as e:
+        raise HTTPException(status_code=500, detail=f"KI-Generierung fehlgeschlagen: {str(e)}") from e
 
 
 @router.post("/extract-text")
 async def extract_text(
     file: UploadFile = File(...),
-    credentials: HTTPAuthorizationCredentials = Depends(security),
+    org_id: str = Depends(get_current_org_id),
 ):
     """Extract text from uploaded PDF, Word, or text files for use as AI context."""
     filename = (file.filename or "").lower()
@@ -686,16 +724,13 @@ async def extract_text(
                     if text:
                         pages.append(text)
                 extracted = '\n\n'.join(pages)
-            except ImportError:
-                extracted = content.decode('utf-8', errors='ignore')
+            except ImportError as e:
+                raise ValueError("pypdf Paket nicht installiert") from e
         elif filename.endswith(('.txt', '.md')):
             extracted = content.decode('utf-8', errors='ignore')
         elif filename.endswith(('.doc', '.docx')):
             # Simple fallback: try reading as text
-            try:
-                extracted = content.decode('utf-8', errors='ignore')
-            except Exception:
-                extracted = ""
+            extracted = content.decode('utf-8', errors='ignore')
         else:
             extracted = content.decode('utf-8', errors='ignore')
 
@@ -705,5 +740,7 @@ async def extract_text(
 
         return {"text": extracted, "filename": file.filename, "chars": len(extracted)}
 
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Fehler beim Lesen der Datei: {str(e)}")
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=f"Datei wird nicht unterstützt: {str(e)}") from e
+    except UnicodeDecodeError as e:
+        raise HTTPException(status_code=400, detail="Datei konnte nicht als Text decodiert werden") from e

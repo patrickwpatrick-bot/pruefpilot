@@ -1,10 +1,18 @@
 /**
  * OnboardingTour — Guided product tour with spotlight, arrows, and step-by-step explanations.
  * Supports a global navigation tour AND page-specific contextual tours.
+ *
+ * ARCHITECTURE:
+ * - OnboardingTour: UI component (modal, spotlight, navigation)
+ * - LeitfadenContext: State management (active/inactive toggle, currentSection tracking)
+ * - These are kept SEPARATE because:
+ *   1) OnboardingTour is a visual tour helper with spotlight/arrows
+ *   2) LeitfadenContext manages broader guidance mode state
+ *   3) Each has a distinct responsibility and lifecycle
  */
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useLocation } from 'react-router-dom'
-import { X, ArrowRight, ArrowLeft, Sparkles, RotateCcw } from 'lucide-react'
+import { X, ArrowRight, ArrowLeft, Sparkles } from 'lucide-react'
 
 export interface TourStep {
   target: string

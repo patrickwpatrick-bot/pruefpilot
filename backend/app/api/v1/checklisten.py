@@ -9,14 +9,10 @@ from pydantic import BaseModel, Field
 from typing import Optional
 from datetime import datetime
 from app.core.database import get_db
-from app.core.security import decode_token
+from app.core.security import get_current_org_id, get_current_user_id
 from app.models.checkliste import ChecklistenTemplate, ChecklistenPunkt
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
 router = APIRouter(prefix="/checklisten", tags=["Checklisten"])
-security = HTTPBearer()
-
-
 # --- Schemas ---
 
 class PunktCreate(BaseModel):
@@ -25,7 +21,6 @@ class PunktCreate(BaseModel):
     hinweis: Optional[str] = None
     reihenfolge: int = 0
     ist_pflicht: bool = True
-
 
 class PunktResponse(BaseModel):
     id: str
@@ -38,14 +33,12 @@ class PunktResponse(BaseModel):
     class Config:
         from_attributes = True
 
-
 class ChecklisteCreate(BaseModel):
     name: str = Field(..., min_length=1, max_length=255)
     norm: Optional[str] = None
     beschreibung: Optional[str] = None
     kategorie: str = "allgemein"
     punkte: list[PunktCreate] = []
-
 
 class ChecklisteResponse(BaseModel):
     id: str
@@ -61,15 +54,9 @@ class ChecklisteResponse(BaseModel):
     class Config:
         from_attributes = True
 
-
-async def _get_org_id(credentials: HTTPAuthorizationCredentials = Depends(security)) -> str:
-    payload = decode_token(credentials.credentials)
-    return payload.get("org")
-
-
 @router.get("", response_model=list[ChecklisteResponse])
 async def list_checklisten(
-    org_id: str = Depends(_get_org_id),
+    org_id: str = Depends(get_current_org_id),
     db: AsyncSession = Depends(get_db),
 ):
     """List all checklist templates (org-specific + system templates)."""
@@ -84,11 +71,10 @@ async def list_checklisten(
     )
     return result.scalars().all()
 
-
 @router.post("", response_model=ChecklisteResponse, status_code=201)
 async def create_checkliste(
     data: ChecklisteCreate,
-    org_id: str = Depends(_get_org_id),
+    org_id: str = Depends(get_current_org_id),
     db: AsyncSession = Depends(get_db),
 ):
     """Create a new checklist template with check items."""
@@ -123,11 +109,10 @@ async def create_checkliste(
     )
     return result.scalar_one()
 
-
 @router.delete("/{checkliste_id}", status_code=204)
 async def delete_checkliste(
     checkliste_id: str,
-    org_id: str = Depends(_get_org_id),
+    org_id: str = Depends(get_current_org_id),
     db: AsyncSession = Depends(get_db),
 ):
     result = await db.execute(

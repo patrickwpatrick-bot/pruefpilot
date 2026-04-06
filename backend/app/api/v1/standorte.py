@@ -8,14 +8,10 @@ from pydantic import BaseModel, Field
 from typing import Optional
 from datetime import datetime
 from app.core.database import get_db
-from app.core.security import decode_token
+from app.core.security import get_current_org_id, get_current_user_id
 from app.models.standort import Standort
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
 router = APIRouter(prefix="/standorte", tags=["Standorte"])
-security = HTTPBearer()
-
-
 class StandortCreate(BaseModel):
     name: str = Field(..., min_length=1, max_length=255)
     strasse: Optional[str] = None
@@ -26,7 +22,6 @@ class StandortCreate(BaseModel):
     abteilung: Optional[str] = None
     etage: Optional[str] = None
     beschreibung: Optional[str] = None
-
 
 class StandortResponse(BaseModel):
     id: str
@@ -44,15 +39,9 @@ class StandortResponse(BaseModel):
     class Config:
         from_attributes = True
 
-
-async def _get_org_id(credentials: HTTPAuthorizationCredentials = Depends(security)) -> str:
-    payload = decode_token(credentials.credentials)
-    return payload.get("org")
-
-
 @router.get("", response_model=list[StandortResponse])
 async def list_standorte(
-    org_id: str = Depends(_get_org_id),
+    org_id: str = Depends(get_current_org_id),
     db: AsyncSession = Depends(get_db),
 ):
     result = await db.execute(
@@ -60,11 +49,10 @@ async def list_standorte(
     )
     return result.scalars().all()
 
-
 @router.post("", response_model=StandortResponse, status_code=201)
 async def create_standort(
     data: StandortCreate,
-    org_id: str = Depends(_get_org_id),
+    org_id: str = Depends(get_current_org_id),
     db: AsyncSession = Depends(get_db),
 ):
     standort = Standort(organisation_id=org_id, **data.model_dump())
@@ -73,12 +61,11 @@ async def create_standort(
     await db.refresh(standort)
     return standort
 
-
 @router.put("/{standort_id}", response_model=StandortResponse)
 async def update_standort(
     standort_id: str,
     data: StandortCreate,
-    org_id: str = Depends(_get_org_id),
+    org_id: str = Depends(get_current_org_id),
     db: AsyncSession = Depends(get_db),
 ):
     result = await db.execute(
@@ -94,11 +81,10 @@ async def update_standort(
     await db.refresh(standort)
     return standort
 
-
 @router.delete("/{standort_id}", status_code=204)
 async def delete_standort(
     standort_id: str,
-    org_id: str = Depends(_get_org_id),
+    org_id: str = Depends(get_current_org_id),
     db: AsyncSession = Depends(get_db),
 ):
     result = await db.execute(

@@ -1,34 +1,36 @@
 /**
- * EmptyState — Consistent empty state with icon and action
+ * EmptyState — Core UI Component
+ * When no data available (with Icon + CTA)
  */
-import { LucideIcon } from 'lucide-react'
-import { Link } from 'react-router-dom'
+import React from 'react'
 
 interface EmptyStateProps {
-  icon: LucideIcon
-  titel: string
-  beschreibung: string
-  actionLabel?: string
-  actionLink?: string
-  onAction?: () => void
+  icon?: React.ReactNode
+  title: string
+  description?: string
+  action?: {
+    label: string
+    onClick: () => void
+  }
+  className?: string
 }
 
-export function EmptyState({ icon: Icon, titel, beschreibung, actionLabel, actionLink, onAction }: EmptyStateProps) {
+export function EmptyState({ icon, title, description, action, className = '' }: EmptyStateProps) {
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-10 text-center">
-      <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-        <Icon className="text-gray-400" size={20} />
-      </div>
-      <p className="text-black font-medium mb-1">{titel}</p>
-      <p className="text-sm text-gray-400 mb-5">{beschreibung}</p>
-      {actionLabel && actionLink && (
-        <Link to={actionLink} className="inline-flex items-center gap-2 px-5 py-2.5 bg-black text-white text-sm font-medium rounded-lg hover:bg-gray-800 transition-colors">
-          {actionLabel}
-        </Link>
+    <div className={`flex flex-col items-center text-center py-10 px-4 ${className}`}>
+      {icon && (
+        <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mb-3">
+          {icon}
+        </div>
       )}
-      {actionLabel && onAction && !actionLink && (
-        <button onClick={onAction} className="inline-flex items-center gap-2 px-5 py-2.5 bg-black text-white text-sm font-medium rounded-lg hover:bg-gray-800 transition-colors">
-          {actionLabel}
+      <p className="text-sm text-gray-500 mb-1">{title}</p>
+      {description && <p className="text-xs text-gray-400 mb-4 max-w-xs">{description}</p>}
+      {action && (
+        <button
+          onClick={action.onClick}
+          className="px-4 py-2 bg-black text-white text-xs font-medium rounded-lg hover:bg-gray-800 transition-colors"
+        >
+          {action.label}
         </button>
       )}
     </div>

@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, delete
 from app.core.database import get_db
-from app.core.security import decode_token
+from app.core.security import get_current_org_id, get_current_user_id
 from app.models.checkliste import ChecklistenTemplate, ChecklistenPunkt
 from app.models.unterweisung import UnterweisungsVorlage, UnterweisungsDurchfuehrung
 from app.models.organisation import Organisation
@@ -18,14 +18,10 @@ from app.models.user import User
 from app.models.gefaehrdungsbeurteilung import Gefaehrdungsbeurteilung, GBU_Gefaehrdung
 from app.models.gefahrstoff import Gefahrstoff
 from app.models.fremdfirma import Fremdfirma, FremdfirmaDokument
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from datetime import datetime, timezone, timedelta, date
 import uuid
 
 router = APIRouter(prefix="/seed", tags=["Seed"])
-security = HTTPBearer()
-
-
 TEMPLATES = [
     {
         "name": "Leiterprüfung",
@@ -371,15 +367,9 @@ UNTERWEISUNGS_TEMPLATES = [
     },
 ]
 
-
-async def _get_org_id(credentials: HTTPAuthorizationCredentials = Depends(security)) -> str:
-    payload = decode_token(credentials.credentials)
-    return payload.get("org")
-
-
 @router.post("/default-checklisten")
 async def seed_default_checklisten(
-    org_id: str = Depends(_get_org_id),
+    org_id: str = Depends(get_current_org_id),
     db: AsyncSession = Depends(get_db),
 ):
     """Create default checklist templates for the organisation."""
@@ -423,10 +413,9 @@ async def seed_default_checklisten(
     await db.flush()
     return {"message": f"{created} Checklisten erstellt", "count": created}
 
-
 @router.post("/default-unterweisungen")
 async def seed_default_unterweisungen(
-    org_id: str = Depends(_get_org_id),
+    org_id: str = Depends(get_current_org_id),
     db: AsyncSession = Depends(get_db),
 ):
     """Create default training templates for the organisation."""
@@ -459,7 +448,6 @@ async def seed_default_unterweisungen(
 
     await db.flush()
     return {"message": f"{created} Unterweisungsvorlagen erstellt", "count": created}
-
 
 # Branchenspezifische Checklisten-Templates
 BRANCHEN_TEMPLATES = {
@@ -576,10 +564,9 @@ BRANCHEN_TEMPLATES = {
     ],
 }
 
-
 @router.post("/branchen-checklisten")
 async def seed_branchen_checklisten(
-    org_id: str = Depends(_get_org_id),
+    org_id: str = Depends(get_current_org_id),
     db: AsyncSession = Depends(get_db),
 ):
     """Create branch-specific checklist templates based on organisation's branche."""
@@ -628,10 +615,9 @@ async def seed_branchen_checklisten(
     await db.flush()
     return {"message": f"{created} branchenspezifische Checklisten erstellt", "count": created}
 
-
 @router.post("/demo-daten")
 async def seed_demo_data(
-    org_id: str = Depends(_get_org_id),
+    org_id: str = Depends(get_current_org_id),
     db: AsyncSession = Depends(get_db),
 ):
     """
@@ -1331,10 +1317,9 @@ async def seed_demo_data(
         "fremdfirmen": len(fremdfirmen_data),
     }
 
-
 @router.post("/demo-daten/loeschen")
 async def delete_demo_data(
-    org_id: str = Depends(_get_org_id),
+    org_id: str = Depends(get_current_org_id),
     db: AsyncSession = Depends(get_db),
 ):
     """

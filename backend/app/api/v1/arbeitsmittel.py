@@ -5,12 +5,13 @@ All queries automatically filter by organisation_id (multi-tenant isolation)
 import csv
 import io
 import qrcode
+from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException, status, Query, UploadFile, File
 from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
 from app.core.database import get_db
-from app.core.security import get_current_user_id, decode_token
+from app.core.security import get_current_user_id, get_current_org_id
 from app.core.audit import log_audit, compute_changes
 from app.models.arbeitsmittel import Arbeitsmittel
 from app.models.user import User
@@ -20,40 +21,26 @@ from app.schemas.arbeitsmittel import (
     ArbeitsmittelResponse,
     ArbeitsmittelListResponse,
 )
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from app.core.config import settings
 
 router = APIRouter(prefix="/arbeitsmittel", tags=["Arbeitsmittel"])
-security = HTTPBearer()
 
 
-async def _get_org_id(credentials: HTTPAuthorizationCredentials = Depends(security)) -> str:
-    """Extract organisation_id from JWT token."""
-    payload = decode_token(credentials.credentials)
-    org_id = payload.get("org")
-    if not org_id:
-        raise HTTPException(status_code=403, detail="Keine Organisation zugeordnet")
-    return org_id
-
-
-async def _get_user_id(credentials: HTTPAuthorizationCredentials = Depends(security)) -> str:
-    """Extract user_id from JWT token."""
-    payload = decode_token(credentials.credentials)
-    return payload.get("sub")
-
-
-@router.get("", response_model=ArbeitsmittelListResponse)
+@router.get("", response_model=ArbeitsmittelListResponse, summary="List equipment", description="Retrieve all equipment (Arbeitsmittel) for the current organisation with filtering and pagination.")
 async def list_arbeitsmittel(
-    org_id: str = Depends(_get_org_id),
+    org_id: str = Depends(get_current_org_id),
     db: AsyncSession = Depends(get_db),
-    skip: int = Query(0, ge=0),
-    limit: int = Query(50, ge=1, le=200),
-    typ: str | None = None,
-    standort_id: str | None = None,
-    suche: str | None = None,
+    skip: int = Query(0, ge=0, description="Number of items to skip"),
+    limit: int = Query(50, ge=1, le=200, description="Number of items to return (max 200)"),
+    typ: str | None = Query(None, description="Filter by type (regal, leiter, maschine, elektro, brandschutz)"),
+    standort_id: str | None = Query(None, description="Filter by location ID"),
+    suche: str | None = Query(None, description="Search by name"),
 ):
     """List all equipment for the current organisation."""
-    query = select(Arbeitsmittel).where(Arbeitsmittel.organisation_id == org_id)
+    query = select(Arbeitsmittel).where(
+        Arbeitsmittel.organisation_id == org_id,
+        Arbeitsmittel.deleted_at == None  # Exclude soft-deleted items
+    )
 
     if typ:
         query = query.where(Arbeitsmittel.typ == typ)
@@ -74,11 +61,11 @@ async def list_arbeitsmittel(
     return ArbeitsmittelListResponse(items=items, total=total)
 
 
-@router.post("", response_model=ArbeitsmittelResponse, status_code=status.HTTP_201_CREATED)
+@router.post("", response_model=ArbeitsmittelResponse, status_code=status.HTTP_201_CREATED, summary="Create equipment", description="Create a new piece of equipment (Arbeitsmittel) with inspection schedule and metadata.")
 async def create_arbeitsmittel(
     data: ArbeitsmittelCreate,
-    org_id: str = Depends(_get_org_id),
-    user_id: str = Depends(_get_user_id),
+    org_id: str = Depends(get_current_org_id),
+    user_id: str = Depends(get_current_user_id),
     db: AsyncSession = Depends(get_db),
 ):
     """Create a new piece of equipment."""
@@ -93,6 +80,7 @@ async def create_arbeitsmittel(
     db.add(arbeitsmittel)
     await db.flush()
     await db.refresh(arbeitsmittel)
+    await db.commit()
 
     # Log audit
     nachher_snapshot = arbeitsmittel.__dict__.copy()
@@ -111,10 +99,10 @@ async def create_arbeitsmittel(
     return arbeitsmittel
 
 
-@router.get("/{arbeitsmittel_id}", response_model=ArbeitsmittelResponse)
+@router.get("/{arbeitsmittel_id}", response_model=ArbeitsmittelResponse, summary="Get equipment", description="Retrieve a single piece of equipment by ID.")
 async def get_arbeitsmittel(
     arbeitsmittel_id: str,
-    org_id: str = Depends(_get_org_id),
+    org_id: str = Depends(get_current_org_id),
     db: AsyncSession = Depends(get_db),
 ):
     """Get a single piece of equipment."""
@@ -122,6 +110,7 @@ async def get_arbeitsmittel(
         select(Arbeitsmittel).where(
             Arbeitsmittel.id == arbeitsmittel_id,
             Arbeitsmittel.organisation_id == org_id,
+            Arbeitsmittel.deleted_at == None,  # Exclude soft-deleted items
         )
     )
     item = result.scalar_one_or_none()
@@ -130,12 +119,12 @@ async def get_arbeitsmittel(
     return item
 
 
-@router.put("/{arbeitsmittel_id}", response_model=ArbeitsmittelResponse)
+@router.put("/{arbeitsmittel_id}", response_model=ArbeitsmittelResponse, summary="Update equipment", description="Update equipment details. Changes are tracked in the audit log.")
 async def update_arbeitsmittel(
     arbeitsmittel_id: str,
     data: ArbeitsmittelUpdate,
-    org_id: str = Depends(_get_org_id),
-    user_id: str = Depends(_get_user_id),
+    org_id: str = Depends(get_current_org_id),
+    user_id: str = Depends(get_current_user_id),
     db: AsyncSession = Depends(get_db),
 ):
     """Update a piece of equipment."""
@@ -143,6 +132,7 @@ async def update_arbeitsmittel(
         select(Arbeitsmittel).where(
             Arbeitsmittel.id == arbeitsmittel_id,
             Arbeitsmittel.organisation_id == org_id,
+            Arbeitsmittel.deleted_at == None,  # Exclude soft-deleted items
         )
     )
     item = result.scalar_one_or_none()
@@ -183,18 +173,19 @@ async def update_arbeitsmittel(
     return item
 
 
-@router.delete("/{arbeitsmittel_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/{arbeitsmittel_id}", status_code=status.HTTP_204_NO_CONTENT, summary="Delete equipment", description="Soft-delete a piece of equipment (marked as deleted, not permanently removed). This action is recorded in the audit log.")
 async def delete_arbeitsmittel(
     arbeitsmittel_id: str,
-    org_id: str = Depends(_get_org_id),
-    user_id: str = Depends(_get_user_id),
+    org_id: str = Depends(get_current_org_id),
+    user_id: str = Depends(get_current_user_id),
     db: AsyncSession = Depends(get_db),
 ):
-    """Delete a piece of equipment."""
+    """Delete a piece of equipment (soft-delete for audit trail)."""
     result = await db.execute(
         select(Arbeitsmittel).where(
             Arbeitsmittel.id == arbeitsmittel_id,
             Arbeitsmittel.organisation_id == org_id,
+            Arbeitsmittel.deleted_at == None,  # Exclude already soft-deleted items
         )
     )
     item = result.scalar_one_or_none()
@@ -205,7 +196,9 @@ async def delete_arbeitsmittel(
     vorher_snapshot = item.__dict__.copy()
     vorher_snapshot.pop("_sa_instance_state", None)
 
-    await db.delete(item)
+    # Soft-delete by setting deleted_at timestamp
+    item.deleted_at = datetime.now(timezone.utc)
+    await db.flush()
 
     # Log audit
     await log_audit(
@@ -222,11 +215,11 @@ async def delete_arbeitsmittel(
 
 # ── BLOCK 4: CSV Import ──────────────────────────────────────────────────────
 
-@router.post("/import")
+@router.post("/import", summary="Import equipment from CSV", description="Import equipment items from a CSV file. Supports flexible column names, BOM detection, and semicolon-delimited files (German Excel exports).")
 async def import_arbeitsmittel_csv(
-    file: UploadFile = File(...),
-    org_id: str = Depends(_get_org_id),
-    user_id: str = Depends(_get_user_id),
+    file: UploadFile = File(..., description="CSV file with equipment data"),
+    org_id: str = Depends(get_current_org_id),
+    user_id: str = Depends(get_current_user_id),
     db: AsyncSession = Depends(get_db),
 ):
     """Import equipment from a CSV file. Handles BOM, semicolons, messy Excel exports."""
@@ -346,7 +339,7 @@ async def import_arbeitsmittel_csv(
 @router.get("/{arbeitsmittel_id}/qr")
 async def get_qr_code(
     arbeitsmittel_id: str,
-    org_id: str = Depends(_get_org_id),
+    org_id: str = Depends(get_current_org_id),
     db: AsyncSession = Depends(get_db),
 ):
     """Generate a QR code PNG for an Arbeitsmittel."""
@@ -383,7 +376,7 @@ async def get_qr_code(
 @router.post("/qr-etiketten")
 async def generate_qr_labels(
     ids: list[str],
-    org_id: str = Depends(_get_org_id),
+    org_id: str = Depends(get_current_org_id),
     db: AsyncSession = Depends(get_db),
 ):
     """Generate a PDF with QR code labels for selected Arbeitsmittel."""
@@ -463,3 +456,116 @@ async def generate_qr_labels(
         media_type="application/pdf",
         headers={"Content-Disposition": 'inline; filename="qr_etiketten.pdf"'},
     )
+
+
+# ── BLOCK 5: Bulk Operations ─────────────────────────────────────────────────
+
+@router.delete("/bulk", status_code=status.HTTP_204_NO_CONTENT, summary="Bulk delete equipment", description="Soft-delete multiple equipment items by ID list (marked as deleted, audit trail preserved).")
+async def bulk_delete_arbeitsmittel(
+    ids: list[str] = Query(..., description="List of equipment IDs to delete"),
+    org_id: str = Depends(get_current_org_id),
+    user_id: str = Depends(get_current_user_id),
+    db: AsyncSession = Depends(get_db),
+):
+    """Soft-delete multiple pieces of equipment in one request."""
+    # Validate all items belong to org and get them first for audit logging
+    result = await db.execute(
+        select(Arbeitsmittel).where(
+            Arbeitsmittel.id.in_(ids),
+            Arbeitsmittel.organisation_id == org_id,
+            Arbeitsmittel.deleted_at == None,  # Only soft-delete non-deleted items
+        )
+    )
+    items = result.scalars().all()
+
+    if len(items) != len(ids):
+        raise HTTPException(
+            status_code=400,
+            detail=f"Found {len(items)} items out of {len(ids)} requested. Check IDs, org access, or deletion status."
+        )
+
+    now = datetime.now(timezone.utc)
+    # Log audit for each deletion and perform soft-delete
+    for item in items:
+        vorher_snapshot = item.__dict__.copy()
+        vorher_snapshot.pop("_sa_instance_state", None)
+
+        # Soft-delete
+        item.deleted_at = now
+
+        await log_audit(
+            db=db,
+            organisation_id=org_id,
+            user_id=user_id,
+            aktion="geloescht",
+            entitaet="Arbeitsmittel",
+            entitaet_id=item.id,
+            entitaet_name=item.name,
+            vorher_snapshot=vorher_snapshot,
+        )
+
+    await db.flush()
+
+
+@router.post("/bulk-update", response_model=list[ArbeitsmittelResponse], summary="Bulk update equipment", description="Update multiple equipment items with common fields.")
+async def bulk_update_arbeitsmittel(
+    updates: dict,  # {"ids": [...], "fields": {"pruef_intervall_monate": 24, ...}}
+    org_id: str = Depends(get_current_org_id),
+    user_id: str = Depends(get_current_user_id),
+    db: AsyncSession = Depends(get_db),
+):
+    """Update multiple equipment items with the same field values."""
+    ids = updates.get("ids", [])
+    fields = updates.get("fields", {})
+
+    if not ids or not fields:
+        raise HTTPException(status_code=400, detail="Must provide 'ids' and 'fields'")
+
+    # Fetch all items
+    result = await db.execute(
+        select(Arbeitsmittel).where(
+            Arbeitsmittel.id.in_(ids),
+            Arbeitsmittel.organisation_id == org_id,
+        )
+    )
+    items = result.scalars().all()
+
+    if len(items) != len(ids):
+        raise HTTPException(status_code=400, detail="Some items not found or not in your organisation")
+
+    updated_items = []
+    for item in items:
+        # Snapshot before
+        vorher_snapshot = item.__dict__.copy()
+        vorher_snapshot.pop("_sa_instance_state", None)
+
+        # Update fields
+        for field, value in fields.items():
+            if hasattr(item, field):
+                setattr(item, field, value)
+
+        await db.flush()
+        await db.refresh(item)
+
+        # Snapshot after and log audit
+        nachher_snapshot = item.__dict__.copy()
+        nachher_snapshot.pop("_sa_instance_state", None)
+        aenderungen = compute_changes(vorher_snapshot, nachher_snapshot)
+
+        if aenderungen:
+            await log_audit(
+                db=db,
+                organisation_id=org_id,
+                user_id=user_id,
+                aktion="geaendert",
+                entitaet="Arbeitsmittel",
+                entitaet_id=item.id,
+                entitaet_name=item.name,
+                aenderungen=aenderungen,
+                vorher_snapshot=vorher_snapshot,
+                nachher_snapshot=nachher_snapshot,
+            )
+
+        updated_items.append(item)
+
+    return updated_items

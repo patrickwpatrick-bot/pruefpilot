@@ -73,6 +73,10 @@ export function EinstellungenPage() {
   const [newBeruf, setNewBeruf] = useState('')
   const [berufeSaving, setBerufeSaving] = useState(false)
 
+  // Abteilungen config
+  const [abteilungenList, setAbteilungenList] = useState<{ id: string; name: string }[]>([])
+  const [newAbteilung, setNewAbteilung] = useState('')
+
   // Sidebar config
   const [sidebarConfig, setSidebarConfig] = useState<SidebarConfig>(loadSidebarConfig)
 
@@ -101,13 +105,15 @@ export function EinstellungenPage() {
       api.get('/organisation'),
       api.get('/organisation/berufe').catch(() => ({ data: [] })),
       api.get('/billing/plan').catch(() => ({ data: null })),
+      api.get('/mitarbeiter/abteilungen').catch(() => ({ data: [] })),
     ])
-      .then(([userRes, stRes, orgRes, berufeRes, billingRes]) => {
+      .then(([userRes, stRes, orgRes, berufeRes, billingRes, abtRes]) => {
         setUser(userRes.data)
         setStandorte(stRes.data)
         setOrg(orgRes.data)
         setBerufe(berufeRes.data || [])
         setBillingPlan(billingRes.data)
+        setAbteilungenList(abtRes.data || [])
         setFirmaForm({
           name: orgRes.data.name || '',
           strasse: orgRes.data.strasse || '',
@@ -259,6 +265,17 @@ export function EinstellungenPage() {
     } catch {
       setBerufe(berufe)
     }
+  }
+
+  // --- Abteilungen ---
+  const addAbteilungSetting = async () => {
+    const trimmed = newAbteilung.trim()
+    if (!trimmed || abteilungenList.some(a => a.name === trimmed)) return
+    try {
+      const res = await api.post('/mitarbeiter/abteilungen', { name: trimmed })
+      setAbteilungenList(prev => [...prev, res.data])
+      setNewAbteilung('')
+    } catch { /* ignore */ }
   }
 
   // --- Module Manager ---
@@ -571,6 +588,62 @@ export function EinstellungenPage() {
         </div>
       </div>
 
+      {/* Abteilungen Card */}
+      <div className="bg-white rounded-xl border border-gray-200 p-6 mb-6">
+        <div className="flex items-center gap-3 mb-5">
+          <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center">
+            <Building size={18} className="text-gray-400" />
+          </div>
+          <div className="flex-1">
+            <h2 className="text-sm font-semibold text-black">Abteilungen</h2>
+            <p className="text-xs text-gray-400">Diese Abteilungen stehen bei Mitarbeitern zur Auswahl</p>
+          </div>
+        </div>
+
+        {/* Existing abteilungen chips */}
+        <div className="flex flex-wrap gap-2 mb-4 min-h-[36px]">
+          {abteilungenList.length === 0 && (
+            <span className="text-xs text-gray-300 italic">Noch keine Abteilungen angelegt</span>
+          )}
+          {abteilungenList.map(a => (
+            <div key={a.id} className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 text-gray-700 text-xs rounded-lg group">
+              <span>{a.name}</span>
+              <button
+                onClick={async () => {
+                  try {
+                    await api.delete(`/mitarbeiter/abteilungen/${a.id}`)
+                    setAbteilungenList(prev => prev.filter(x => x.id !== a.id))
+                  } catch { /* ignore */ }
+                }}
+                className="text-gray-300 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100"
+              >
+                <X size={12} />
+              </button>
+            </div>
+          ))}
+        </div>
+
+        {/* Add new abteilung */}
+        <div className="flex gap-2">
+          <input
+            type="text"
+            value={newAbteilung}
+            onChange={e => setNewAbteilung(e.target.value)}
+            onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addAbteilungSetting() } }}
+            placeholder="Neue Abteilung eingeben, z.B. Produktion..."
+            className="flex-1 px-3.5 py-2 rounded-lg border border-gray-200 text-sm bg-white focus:ring-1 focus:ring-black focus:border-black outline-none"
+          />
+          <button
+            onClick={addAbteilungSetting}
+            disabled={!newAbteilung.trim()}
+            className="flex items-center gap-1.5 px-4 py-2 bg-black text-white text-sm font-medium rounded-lg hover:bg-gray-800 disabled:opacity-40 transition-colors"
+          >
+            <Plus size={14} />
+            Hinzufügen
+          </button>
+        </div>
+      </div>
+
       {/* Module Manager Card */}
       <div className="bg-white rounded-xl border border-gray-200 p-6 mb-6" data-tour-page="module">
         <div className="flex items-center gap-3 mb-5">
@@ -683,50 +756,50 @@ export function EinstellungenPage() {
         </div>
       </div>
 
-      {/* Demo-Daten Card */}
+      {/* Demo-Daten Card — Toggle-Style wie Einführungstour */}
       <div className="bg-white rounded-xl border border-gray-200 p-6 mb-6" data-tour-page="demo-daten">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-purple-50 rounded-full flex items-center justify-center">
               <Briefcase size={18} className="text-purple-500" />
             </div>
             <div>
               <h2 className="text-sm font-semibold text-black">Demo-Daten</h2>
-              <p className="text-xs text-gray-400">Realistische Beispieldaten laden — Arbeitsmittel, Prüfungen, Mängel, Mitarbeiter</p>
+              <p className="text-xs text-gray-400">Realistische Beispieldaten zum Ausprobieren — Arbeitsmittel, Prüfungen, Mängel, Mitarbeiter</p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
+        </div>
+        <div className="flex items-center justify-between mt-2">
+          <label className="flex items-center gap-3 cursor-pointer select-none">
             <button
               onClick={async () => {
-                if (!confirm('Demo-Daten für einen Maschinenbau-Betrieb laden? Bestehende Daten bleiben erhalten.')) return
-                try {
-                  await api.post('/seed/demo-daten')
-                  window.location.reload()
-                } catch (e: any) {
-                  alert(e?.response?.data?.detail || 'Fehler beim Laden der Demo-Daten')
+                // Prüfen ob Demo-Daten vorhanden (Standorte als Proxy)
+                const hasData = standorte.length > 0
+                if (hasData) {
+                  if (!confirm('Alle Demo-Daten dieser Organisation löschen? Dies kann nicht rückgängig gemacht werden!')) return
+                  try {
+                    await api.post('/seed/demo-daten/loeschen')
+                    window.location.reload()
+                  } catch (e: any) {
+                    alert(e?.response?.data?.detail || 'Fehler beim Löschen')
+                  }
+                } else {
+                  try {
+                    await api.post('/seed/demo-daten')
+                    window.location.reload()
+                  } catch (e: any) {
+                    alert(e?.response?.data?.detail || 'Fehler beim Laden der Demo-Daten')
+                  }
                 }
               }}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-black text-white text-xs font-medium rounded-lg hover:bg-gray-800 transition-colors"
+              className={`relative w-11 h-6 rounded-full transition-colors ${(standorte.length > 0) ? 'bg-purple-600' : 'bg-gray-300'}`}
             >
-              <Plus size={14} />
-              Demo laden
+              <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${(standorte.length > 0) ? 'translate-x-5' : 'translate-x-0'}`} />
             </button>
-            <button
-              onClick={async () => {
-                if (!confirm('Alle Daten dieser Organisation löschen? Dies kann nicht rückgängig gemacht werden!')) return
-                try {
-                  await api.post('/seed/demo-daten/loeschen')
-                  window.location.reload()
-                } catch (e: any) {
-                  alert(e?.response?.data?.detail || 'Fehler beim Löschen')
-                }
-              }}
-              className="flex items-center gap-1.5 px-3 py-1.5 border border-red-200 text-red-600 text-xs font-medium rounded-lg hover:bg-red-50 transition-colors"
-            >
-              <Trash2 size={14} />
-              Daten löschen
-            </button>
-          </div>
+            <span className="text-xs text-gray-600">
+              {(standorte.length > 0) ? 'Demo-Daten geladen' : 'Demo-Daten deaktiviert'}
+            </span>
+          </label>
         </div>
       </div>
 
@@ -901,23 +974,30 @@ export function EinstellungenPage() {
         ) : (
           <>
             {billingPlan && (
-              <div className="bg-gray-950 text-white rounded-xl p-5 mb-6">
-                <div className="flex items-center justify-between mb-3">
-                  <span className="text-xs font-medium text-gray-400 uppercase tracking-wide">Dein aktueller Plan</span>
+              <div className="bg-gradient-to-r from-gray-950 to-gray-800 text-white rounded-xl p-5 mb-6">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 bg-white/10 rounded-lg flex items-center justify-center">
+                      <Crown size={16} className="text-white" />
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-bold">{billingPlan.name}</h3>
+                      <span className="text-xs text-gray-400">Dein aktueller Plan</span>
+                    </div>
+                  </div>
                   {billingPlan.trial_expires_at && (
                     <span className="text-xs px-2.5 py-1 bg-amber-500/20 text-amber-300 rounded-full font-medium">
                       Testphase bis {new Date(billingPlan.trial_expires_at).toLocaleDateString('de-DE')}
                     </span>
                   )}
                 </div>
-                <h3 className="text-xl font-bold">{billingPlan.name}</h3>
                 {billingPlan.limits && (
-                  <div className="mt-3 flex flex-wrap gap-4 text-sm text-gray-300">
+                  <div className="mt-3 flex flex-wrap gap-3 text-xs text-gray-300">
                     {billingPlan.limits.arbeitsmittel && (
-                      <span>{billingPlan.limits.arbeitsmittel === 'unbegrenzt' ? 'Unbegrenzte' : `${billingPlan.limits.arbeitsmittel}`} Arbeitsmittel</span>
+                      <span className="px-2.5 py-1 bg-white/5 rounded-lg">{billingPlan.limits.arbeitsmittel === 'unbegrenzt' ? 'Unbegrenzte' : billingPlan.limits.arbeitsmittel} Arbeitsmittel</span>
                     )}
                     {billingPlan.limits.benutzer && (
-                      <span>{billingPlan.limits.benutzer} {Number(billingPlan.limits.benutzer) === 1 ? 'Benutzer' : 'Benutzer'}</span>
+                      <span className="px-2.5 py-1 bg-white/5 rounded-lg">{billingPlan.limits.benutzer} Benutzer</span>
                     )}
                   </div>
                 )}
@@ -928,11 +1008,12 @@ export function EinstellungenPage() {
             <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-4">Alle Pläne im Vergleich</p>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
               {(() => {
+                // Preise konsistent mit /preise — Basic 29€, Standard 79€, Professional 149€, Enterprise 249€
                 const plans = [
-                  { name: 'Free', preis: '0', icon: CreditCard, iconBg: 'bg-gray-100', iconColor: 'text-gray-600', arbeitsmittel: '10', pruefungen: '50', benutzer: '1', wasserzeichen: true, popular: false },
-                  { name: 'Prüf-Manager', preis: '29', icon: Zap, iconBg: 'bg-blue-100', iconColor: 'text-blue-600', arbeitsmittel: '100', pruefungen: '500', benutzer: '3', wasserzeichen: true, popular: false },
-                  { name: 'Professional', preis: '79', icon: Crown, iconBg: 'bg-purple-100', iconColor: 'text-purple-600', arbeitsmittel: '500', pruefungen: '2.000', benutzer: '10', wasserzeichen: false, popular: true },
-                  { name: 'Business', preis: '149', icon: Crown, iconBg: 'bg-green-100', iconColor: 'text-green-600', arbeitsmittel: 'Unbegrenzt', pruefungen: 'Unbegrenzt', benutzer: '50', wasserzeichen: false, popular: false },
+                  { name: 'Basic', preis: '29', subtitle: 'Für kleine Betriebe', icon: Zap, iconBg: 'bg-blue-100', iconColor: 'text-blue-600', arbeitsmittel: '25 Mitarbeiter', pruefungen: 'Prüf-Manager', benutzer: '1', wasserzeichen: true, popular: false, upsaleHint: '' },
+                  { name: 'Standard', preis: '79', subtitle: 'Für wachsende Teams', icon: Crown, iconBg: 'bg-purple-100', iconColor: 'text-purple-600', arbeitsmittel: '75 Mitarbeiter', pruefungen: 'Prüf-Manager + Unterweisungen', benutzer: '5', wasserzeichen: true, popular: true, upsaleHint: 'Unterweisungen dokumentieren & nachweisen' },
+                  { name: 'Professional', preis: '149', subtitle: 'Für mittlere Unternehmen', icon: Crown, iconBg: 'bg-green-100', iconColor: 'text-green-600', arbeitsmittel: '150 Mitarbeiter', pruefungen: '+ Gefährdungsbeurteilungen', benutzer: '15', wasserzeichen: false, popular: false, upsaleHint: 'Risikobewertung & Maßnahmen-Tracking' },
+                  { name: 'Enterprise', preis: '249', subtitle: 'Für große Organisationen', icon: Crown, iconBg: 'bg-amber-100', iconColor: 'text-amber-600', arbeitsmittel: '250+ Mitarbeiter', pruefungen: 'Alle Module + Gefahrstoffe-KI', benutzer: 'Unbegrenzt', wasserzeichen: false, popular: false, upsaleHint: 'KI-gestützte Gefahrstoff-Analyse & Fremdfirmen' },
                 ]
                 const currentPlanIndex = plans.findIndex(p => p.name === billingPlan?.name)
 
@@ -964,32 +1045,35 @@ export function EinstellungenPage() {
                       )}
 
                       {/* Header */}
-                      <div className="flex items-center gap-2 mb-3 mt-1">
+                      <div className="flex items-center gap-2 mb-1 mt-1">
                         <div className={`w-8 h-8 rounded-lg ${plan.iconBg} flex items-center justify-center`}>
                           <PlanIcon size={16} className={plan.iconColor} />
                         </div>
-                        <h3 className="text-sm font-bold text-black">{plan.name}</h3>
+                        <div>
+                          <h3 className="text-sm font-bold text-black">{plan.name}</h3>
+                          <p className="text-[10px] text-gray-400">{plan.subtitle}</p>
+                        </div>
                       </div>
 
                       {/* Preis */}
-                      <div className="mb-4">
+                      <div className="mb-3 mt-2">
                         <span className="text-2xl font-bold text-black">{plan.preis}€</span>
                         <span className="text-xs text-gray-400">/Monat</span>
                       </div>
 
                       {/* Features */}
-                      <ul className="space-y-2 mb-5 text-xs text-gray-600 flex-1">
+                      <ul className="space-y-2 mb-4 text-xs text-gray-600 flex-1">
                         <li className="flex items-center gap-2">
                           <Check size={14} className="text-green-500 flex-shrink-0" />
-                          <span>{plan.arbeitsmittel === 'Unbegrenzt' ? 'Unbegrenzte' : `bis ${plan.arbeitsmittel}`} Arbeitsmittel</span>
+                          <span>{plan.arbeitsmittel}</span>
                         </li>
                         <li className="flex items-center gap-2">
                           <Check size={14} className="text-green-500 flex-shrink-0" />
-                          <span>{plan.pruefungen === 'Unbegrenzt' ? 'Unbegrenzte' : `bis ${plan.pruefungen}`} Prüfungen/Monat</span>
+                          <span>{plan.pruefungen}</span>
                         </li>
                         <li className="flex items-center gap-2">
                           <Check size={14} className="text-green-500 flex-shrink-0" />
-                          <span>{plan.benutzer === '1' ? '1 Benutzer' : `bis ${plan.benutzer} Benutzer`}</span>
+                          <span>{plan.benutzer === 'Unbegrenzt' ? 'Unbegrenzt Benutzer' : plan.benutzer === '1' ? '1 Admin-Benutzer' : `bis ${plan.benutzer} Benutzer`}</span>
                         </li>
                         <li className="flex items-center gap-2">
                           {plan.wasserzeichen ? (
@@ -1005,6 +1089,13 @@ export function EinstellungenPage() {
                           )}
                         </li>
                       </ul>
+
+                      {/* Subtiler Upsale-Hint */}
+                      {!isCurrent && isUpgrade && plan.upsaleHint && (
+                        <p className="text-[10px] text-purple-500 mb-3 px-1 leading-relaxed">
+                          {plan.upsaleHint}
+                        </p>
+                      )}
 
                       {/* Action Button */}
                       {isCurrent ? (

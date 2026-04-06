@@ -9,14 +9,10 @@ from pydantic import BaseModel, Field
 from typing import Optional
 from datetime import datetime, date
 from app.core.database import get_db
-from app.core.security import decode_token
+from app.core.security import get_current_org_id, get_current_user_id
 from app.models.fremdfirma import Fremdfirma, FremdfirmaDokument
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
 router = APIRouter(prefix="/fremdfirmen", tags=["Fremdfirmen"])
-security = HTTPBearer()
-
-
 # --- Schemas ---
 
 class FremdfirmaDokumentCreate(BaseModel):
@@ -24,11 +20,9 @@ class FremdfirmaDokumentCreate(BaseModel):
     name: str = Field(..., min_length=1, max_length=255)
     gueltig_bis: Optional[date] = None
 
-
 class FremdfirmaDokumentUpdate(BaseModel):
     status: Optional[str] = None
     gueltig_bis: Optional[date] = None
-
 
 class FremdfirmaDokumentResponse(BaseModel):
     id: str
@@ -43,14 +37,12 @@ class FremdfirmaDokumentResponse(BaseModel):
     class Config:
         from_attributes = True
 
-
 class FremdfirmaCreate(BaseModel):
     name: str = Field(..., min_length=1, max_length=255)
     ansprechpartner: Optional[str] = None
     email: Optional[str] = None
     telefon: Optional[str] = None
     taetigkeit: Optional[str] = None
-
 
 class FremdfirmaUpdate(BaseModel):
     name: Optional[str] = None
@@ -59,7 +51,6 @@ class FremdfirmaUpdate(BaseModel):
     telefon: Optional[str] = None
     taetigkeit: Optional[str] = None
     status: Optional[str] = None
-
 
 class FremdfirmaResponse(BaseModel):
     id: str
@@ -75,15 +66,9 @@ class FremdfirmaResponse(BaseModel):
     class Config:
         from_attributes = True
 
-
-async def _get_org_id(credentials: HTTPAuthorizationCredentials = Depends(security)) -> str:
-    payload = decode_token(credentials.credentials)
-    return payload.get("org")
-
-
 @router.get("", response_model=list[FremdfirmaResponse])
 async def list_fremdfirmen(
-    org_id: str = Depends(_get_org_id),
+    org_id: str = Depends(get_current_org_id),
     db: AsyncSession = Depends(get_db),
 ):
     """List all contractors for org with dokumente loaded."""
@@ -95,11 +80,10 @@ async def list_fremdfirmen(
     )
     return result.scalars().all()
 
-
 @router.post("", response_model=FremdfirmaResponse, status_code=201)
 async def create_fremdfirma(
     data: FremdfirmaCreate,
-    org_id: str = Depends(_get_org_id),
+    org_id: str = Depends(get_current_org_id),
     db: AsyncSession = Depends(get_db),
 ):
     """Create a new contractor."""
@@ -118,12 +102,11 @@ async def create_fremdfirma(
     )
     return result.scalar_one()
 
-
 @router.put("/{fremdfirma_id}", response_model=FremdfirmaResponse)
 async def update_fremdfirma(
     fremdfirma_id: str,
     data: FremdfirmaUpdate,
-    org_id: str = Depends(_get_org_id),
+    org_id: str = Depends(get_current_org_id),
     db: AsyncSession = Depends(get_db),
 ):
     """Update a contractor."""
@@ -150,11 +133,10 @@ async def update_fremdfirma(
     )
     return result.scalar_one()
 
-
 @router.delete("/{fremdfirma_id}", status_code=204)
 async def delete_fremdfirma(
     fremdfirma_id: str,
-    org_id: str = Depends(_get_org_id),
+    org_id: str = Depends(get_current_org_id),
     db: AsyncSession = Depends(get_db),
 ):
     """Delete a contractor."""
@@ -169,12 +151,11 @@ async def delete_fremdfirma(
         raise HTTPException(status_code=404, detail="Fremdfirma nicht gefunden")
     await db.delete(fremdfirma)
 
-
 @router.post("/{fremdfirma_id}/dokumente", response_model=FremdfirmaDokumentResponse, status_code=201)
 async def add_dokument(
     fremdfirma_id: str,
     data: FremdfirmaDokumentCreate,
-    org_id: str = Depends(_get_org_id),
+    org_id: str = Depends(get_current_org_id),
     db: AsyncSession = Depends(get_db),
 ):
     """Add a document to a contractor."""
@@ -200,13 +181,12 @@ async def add_dokument(
     await db.refresh(dokument)
     return dokument
 
-
 @router.put("/{fremdfirma_id}/dokumente/{dok_id}", response_model=FremdfirmaDokumentResponse)
 async def update_dokument(
     fremdfirma_id: str,
     dok_id: str,
     data: FremdfirmaDokumentUpdate,
-    org_id: str = Depends(_get_org_id),
+    org_id: str = Depends(get_current_org_id),
     db: AsyncSession = Depends(get_db),
 ):
     """Update a document in a contractor."""
@@ -239,12 +219,11 @@ async def update_dokument(
     await db.refresh(dokument)
     return dokument
 
-
 @router.delete("/{fremdfirma_id}/dokumente/{dok_id}", status_code=204)
 async def delete_dokument(
     fremdfirma_id: str,
     dok_id: str,
-    org_id: str = Depends(_get_org_id),
+    org_id: str = Depends(get_current_org_id),
     db: AsyncSession = Depends(get_db),
 ):
     """Delete a document from a contractor."""

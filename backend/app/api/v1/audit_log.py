@@ -8,14 +8,10 @@ from pydantic import BaseModel
 from typing import Optional
 from datetime import datetime
 from app.core.database import get_db
-from app.core.security import decode_token
+from app.core.security import get_current_org_id, get_current_user_id
 from app.models.audit_log import AuditLog
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
 router = APIRouter(prefix="/audit-log", tags=["Audit-Log"])
-security = HTTPBearer()
-
-
 class AuditLogResponse(BaseModel):
     id: str
     user_id: str
@@ -32,19 +28,13 @@ class AuditLogResponse(BaseModel):
     class Config:
         from_attributes = True
 
-
-async def _get_org_id(credentials: HTTPAuthorizationCredentials = Depends(security)) -> str:
-    payload = decode_token(credentials.credentials)
-    return payload.get("org")
-
-
-@router.get("", response_model=list[AuditLogResponse])
+@router.get("", response_model=list[AuditLogResponse], summary="List audit logs", description="Retrieve audit logs for the organisation showing all create/update/delete actions with detailed change tracking.")
 async def list_audit_logs(
-    org_id: str = Depends(_get_org_id),
+    org_id: str = Depends(get_current_org_id),
     db: AsyncSession = Depends(get_db),
-    limit: int = Query(default=50, le=200),
-    offset: int = Query(default=0),
-    entitaet: Optional[str] = Query(default=None),
+    limit: int = Query(default=50, le=200, description="Number of logs to return (max 200)"),
+    offset: int = Query(default=0, description="Number of logs to skip"),
+    entitaet: Optional[str] = Query(default=None, description="Filter by entity type (e.g., Arbeitsmittel, Pruefung)"),
 ):
     """List audit logs, newest first."""
     query = (

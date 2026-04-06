@@ -6,13 +6,20 @@ import pytest_asyncio
 import asyncio
 from httpx import AsyncClient, ASGITransport
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
+from sqlalchemy.pool import StaticPool
 from app.core.database import Base, get_db
 from app.main import app
 
 # In-memory SQLite for tests (fast, no external DB needed)
+# Enable foreign_keys pragma for integrity enforcement
 TEST_DATABASE_URL = "sqlite+aiosqlite:///./test.db"
 
-engine = create_async_engine(TEST_DATABASE_URL, echo=False)
+engine = create_async_engine(
+    TEST_DATABASE_URL,
+    echo=False,
+    poolclass=StaticPool,
+    connect_args={"check_same_thread": False},
+)
 TestSessionLocal = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
 
 
@@ -26,6 +33,8 @@ def event_loop():
 @pytest_asyncio.fixture(autouse=True)
 async def setup_db():
     async with engine.begin() as conn:
+        # Enable foreign key constraints for SQLite
+        await conn.exec_driver_sql("PRAGMA foreign_keys=ON")
         await conn.run_sync(Base.metadata.create_all)
     yield
     async with engine.begin() as conn:

@@ -8,15 +8,11 @@ from pydantic import BaseModel, Field
 from typing import Optional
 from datetime import datetime, date
 from app.core.database import get_db
-from app.core.security import decode_token
+from app.core.security import get_current_org_id, get_current_user_id
 from app.core.audit import log_audit, compute_changes
 from app.models.gefahrstoff import Gefahrstoff
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
 router = APIRouter(prefix="/gefahrstoffe", tags=["Gefahrstoffe"])
-security = HTTPBearer()
-
-
 # --- Schemas ---
 
 class GefahrstoffCreate(BaseModel):
@@ -32,7 +28,6 @@ class GefahrstoffCreate(BaseModel):
     foto_url: Optional[str] = None
     sicherheitsdatenblatt_url: Optional[str] = None
 
-
 class GefahrstoffUpdate(BaseModel):
     name: Optional[str] = None
     hersteller: Optional[str] = None
@@ -45,7 +40,6 @@ class GefahrstoffUpdate(BaseModel):
     menge: Optional[str] = None
     foto_url: Optional[str] = None
     sicherheitsdatenblatt_url: Optional[str] = None
-
 
 class GefahrstoffResponse(BaseModel):
     id: str
@@ -66,17 +60,6 @@ class GefahrstoffResponse(BaseModel):
 
     class Config:
         from_attributes = True
-
-
-async def _get_org_id(credentials: HTTPAuthorizationCredentials = Depends(security)) -> str:
-    payload = decode_token(credentials.credentials)
-    return payload.get("org")
-
-
-async def _get_user_id(credentials: HTTPAuthorizationCredentials = Depends(security)) -> str:
-    payload = decode_token(credentials.credentials)
-    return payload.get("sub")
-
 
 def _generate_betriebsanweisung(stoff: Gefahrstoff) -> str:
     """
@@ -158,10 +141,9 @@ def _generate_betriebsanweisung(stoff: Gefahrstoff) -> str:
 
     return "\n".join(lines)
 
-
 @router.get("", response_model=list[GefahrstoffResponse])
 async def list_gefahrstoffe(
-    org_id: str = Depends(_get_org_id),
+    org_id: str = Depends(get_current_org_id),
     db: AsyncSession = Depends(get_db),
 ):
     """List all substances for org."""
@@ -172,12 +154,11 @@ async def list_gefahrstoffe(
     )
     return result.scalars().all()
 
-
 @router.post("", response_model=GefahrstoffResponse, status_code=201)
 async def create_gefahrstoff(
     data: GefahrstoffCreate,
-    org_id: str = Depends(_get_org_id),
-    user_id: str = Depends(_get_user_id),
+    org_id: str = Depends(get_current_org_id),
+    user_id: str = Depends(get_current_user_id),
     db: AsyncSession = Depends(get_db),
 ):
     """Create a new substance."""
@@ -205,13 +186,12 @@ async def create_gefahrstoff(
 
     return gefahrstoff
 
-
 @router.put("/{stoff_id}", response_model=GefahrstoffResponse)
 async def update_gefahrstoff(
     stoff_id: str,
     data: GefahrstoffUpdate,
-    org_id: str = Depends(_get_org_id),
-    user_id: str = Depends(_get_user_id),
+    org_id: str = Depends(get_current_org_id),
+    user_id: str = Depends(get_current_user_id),
     db: AsyncSession = Depends(get_db),
 ):
     """Update a substance."""
@@ -259,12 +239,11 @@ async def update_gefahrstoff(
 
     return gefahrstoff
 
-
 @router.delete("/{stoff_id}", status_code=204)
 async def delete_gefahrstoff(
     stoff_id: str,
-    org_id: str = Depends(_get_org_id),
-    user_id: str = Depends(_get_user_id),
+    org_id: str = Depends(get_current_org_id),
+    user_id: str = Depends(get_current_user_id),
     db: AsyncSession = Depends(get_db),
 ):
     """Delete a substance."""
@@ -296,11 +275,10 @@ async def delete_gefahrstoff(
         vorher_snapshot=vorher_snapshot,
     )
 
-
 @router.post("/{stoff_id}/betriebsanweisung", response_model=GefahrstoffResponse)
 async def generate_betriebsanweisung(
     stoff_id: str,
-    org_id: str = Depends(_get_org_id),
+    org_id: str = Depends(get_current_org_id),
     db: AsyncSession = Depends(get_db),
 ):
     """Auto-generate Betriebsanweisung text from substance data."""

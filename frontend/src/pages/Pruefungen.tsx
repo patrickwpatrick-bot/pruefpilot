@@ -128,19 +128,17 @@ export function PruefungenPage() {
 
       {pruefungen.length === 0 ? (
         <EmptyState
-          icon={ClipboardCheck}
-          titel="Noch keine Prüfungen"
-          beschreibung="Prüfungen werden erstellt, wenn du ein Arbeitsmittel prüfst."
-          actionLabel="Zu den Arbeitsmitteln"
-          actionLink="/arbeitsmittel"
+          icon={<ClipboardCheck size={20} className="text-gray-400" />}
+          title="Noch keine Prüfungen"
+          description="Prüfungen werden erstellt, wenn du ein Arbeitsmittel prüfst."
+          action={{ label: 'Zu den Arbeitsmitteln', onClick: () => navigate('/arbeitsmittel') }}
         />
       ) : filtered.length === 0 ? (
         <EmptyState
-          icon={Search}
-          titel="Keine Ergebnisse"
-          beschreibung="Keine Prüfungen entsprechen deinen Filterkriterien."
-          actionLabel="Filter zurücksetzen"
-          onAction={() => { setSearch(''); setFilterStatus('alle'); setFilterErgebnis('alle') }}
+          icon={<Search size={20} className="text-gray-400" />}
+          title="Keine Ergebnisse"
+          description="Keine Prüfungen entsprechen deinen Filterkriterien."
+          action={{ label: 'Filter zurücksetzen', onClick: () => { setSearch(''); setFilterStatus('alle'); setFilterErgebnis('alle') } }}
         />
       ) : (
         <LeitfadenTooltip

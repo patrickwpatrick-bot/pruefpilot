@@ -34,7 +34,7 @@ async def _get_token_data(credentials: HTTPAuthorizationCredentials = Depends(se
     return {"user_id": payload.get("sub"), "org_id": payload.get("org")}
 
 
-@router.get("")
+@router.get("", summary="List inspections", description="Retrieve all inspections (Prüfungen) for the organisation with their status, defects, and checklist items.")
 async def list_pruefungen(
     token_data: dict = Depends(_get_token_data),
     db: AsyncSession = Depends(get_db),
@@ -79,7 +79,7 @@ async def list_pruefungen(
     ]
 
 
-@router.post("", response_model=PruefungResponse, status_code=status.HTTP_201_CREATED)
+@router.post("", response_model=PruefungResponse, status_code=status.HTTP_201_CREATED, summary="Start inspection", description="Create and start a new inspection (Prüfung) for an equipment item using a checklist template.")
 async def start_pruefung(
     data: PruefungCreate,
     token_data: dict = Depends(_get_token_data),

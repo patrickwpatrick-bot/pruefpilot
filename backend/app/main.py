@@ -106,6 +106,48 @@ async def security_headers(request: Request, call_next):
     return response
 
 
+# ── Request/Response Logging Middleware ───────────────────────────────────────
+@app.middleware("http")
+async def request_logging(request: Request, call_next):
+    """Log all HTTP requests and responses for debugging and monitoring."""
+    import uuid
+    from datetime import datetime, timezone
+
+    request_id = str(uuid.uuid4())
+    start_time = time()
+
+    # Extract request info
+    method = request.method
+    path = request.url.path
+    client_ip = request.client.host if request.client else "unknown"
+
+    # Skip logging for health checks and documentation
+    if path in ("/health", "/docs", "/redoc", "/openapi.json"):
+        return await call_next(request)
+
+    try:
+        response = await call_next(request)
+        duration_ms = (time() - start_time) * 1000
+
+        # Log successful request
+        logger.info(
+            f"REQ {request_id} | {method} {path} | Status: {response.status_code} | "
+            f"IP: {client_ip} | Duration: {duration_ms:.1f}ms"
+        )
+
+        # Add request ID to response headers for tracing
+        response.headers["X-Request-ID"] = request_id
+        return response
+
+    except Exception as e:
+        duration_ms = (time() - start_time) * 1000
+        logger.error(
+            f"REQ {request_id} | {method} {path} | Exception | "
+            f"IP: {client_ip} | Duration: {duration_ms:.1f}ms | Error: {str(e)}"
+        )
+        raise
+
+
 # ── Rate Limiting Middleware (Block 15) ───────────────────────────────────────
 @app.middleware("http")
 async def rate_limit_middleware(request: Request, call_next):

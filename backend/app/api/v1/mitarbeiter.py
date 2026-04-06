@@ -9,16 +9,12 @@ from pydantic import BaseModel, Field
 from typing import Optional
 from datetime import date, datetime
 from app.core.database import get_db
-from app.core.security import decode_token
+from app.core.security import get_current_org_id, get_current_user_id
 from app.core.audit import log_audit, compute_changes
 from app.models.mitarbeiter import Mitarbeiter, Abteilung, MitarbeiterDokument
 from app.models.unterweisungs_zuweisung import UnterweisungsZuweisung
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
 router = APIRouter(prefix="/mitarbeiter", tags=["Mitarbeiter"])
-security = HTTPBearer()
-
-
 # --- Schemas ---
 
 class AbteilungCreate(BaseModel):
@@ -104,22 +100,11 @@ class MitarbeiterResponse(BaseModel):
     class Config:
         from_attributes = True
 
-
-async def _get_org_id(credentials: HTTPAuthorizationCredentials = Depends(security)) -> str:
-    payload = decode_token(credentials.credentials)
-    return payload.get("org")
-
-
-async def _get_user_id(credentials: HTTPAuthorizationCredentials = Depends(security)) -> str:
-    payload = decode_token(credentials.credentials)
-    return payload.get("sub")
-
-
 # ===== ABTEILUNGEN =====
 
 @router.get("/abteilungen", response_model=list[AbteilungResponse])
 async def list_abteilungen(
-    org_id: str = Depends(_get_org_id),
+    org_id: str = Depends(get_current_org_id),
     db: AsyncSession = Depends(get_db),
 ):
     result = await db.execute(
@@ -129,11 +114,10 @@ async def list_abteilungen(
     )
     return result.scalars().all()
 
-
 @router.post("/abteilungen", response_model=AbteilungResponse, status_code=201)
 async def create_abteilung(
     data: AbteilungCreate,
-    org_id: str = Depends(_get_org_id),
+    org_id: str = Depends(get_current_org_id),
     db: AsyncSession = Depends(get_db),
 ):
     abt = Abteilung(organisation_id=org_id, name=data.name)
@@ -142,11 +126,10 @@ async def create_abteilung(
     await db.refresh(abt)
     return abt
 
-
 @router.delete("/abteilungen/{abteilung_id}", status_code=204)
 async def delete_abteilung(
     abteilung_id: str,
-    org_id: str = Depends(_get_org_id),
+    org_id: str = Depends(get_current_org_id),
     db: AsyncSession = Depends(get_db),
 ):
     result = await db.execute(
@@ -157,12 +140,11 @@ async def delete_abteilung(
         raise HTTPException(status_code=404, detail="Abteilung nicht gefunden")
     await db.delete(abt)
 
-
 # ===== MITARBEITER =====
 
 @router.get("", response_model=list[MitarbeiterResponse])
 async def list_mitarbeiter(
-    org_id: str = Depends(_get_org_id),
+    org_id: str = Depends(get_current_org_id),
     db: AsyncSession = Depends(get_db),
     abteilung_id: Optional[str] = Query(None),
     nur_aktive: bool = Query(False),
@@ -235,12 +217,11 @@ async def list_mitarbeiter(
 
     return responses
 
-
 @router.post("", response_model=MitarbeiterResponse, status_code=201)
 async def create_mitarbeiter(
     data: MitarbeiterCreate,
-    org_id: str = Depends(_get_org_id),
-    user_id: str = Depends(_get_user_id),
+    org_id: str = Depends(get_current_org_id),
+    user_id: str = Depends(get_current_user_id),
     db: AsyncSession = Depends(get_db),
 ):
     ma = Mitarbeiter(
@@ -292,14 +273,13 @@ async def create_mitarbeiter(
         dokumente=[], unterweisungs_status=[], compliance_prozent=100,
     )
 
-
 @router.patch("/{mitarbeiter_id}", response_model=MitarbeiterResponse)
 @router.put("/{mitarbeiter_id}", response_model=MitarbeiterResponse)
 async def update_mitarbeiter(
     mitarbeiter_id: str,
     data: MitarbeiterUpdate,
-    org_id: str = Depends(_get_org_id),
-    user_id: str = Depends(_get_user_id),
+    org_id: str = Depends(get_current_org_id),
+    user_id: str = Depends(get_current_user_id),
     db: AsyncSession = Depends(get_db),
 ):
     result = await db.execute(
@@ -351,12 +331,11 @@ async def update_mitarbeiter(
         dokumente=[], unterweisungs_status=[], compliance_prozent=0,
     )
 
-
 @router.delete("/{mitarbeiter_id}", status_code=204)
 async def delete_mitarbeiter(
     mitarbeiter_id: str,
-    org_id: str = Depends(_get_org_id),
-    user_id: str = Depends(_get_user_id),
+    org_id: str = Depends(get_current_org_id),
+    user_id: str = Depends(get_current_user_id),
     db: AsyncSession = Depends(get_db),
 ):
     result = await db.execute(
@@ -385,13 +364,12 @@ async def delete_mitarbeiter(
         vorher_snapshot=vorher_snapshot,
     )
 
-
 # ===== DOKUMENTE =====
 
 @router.get("/{mitarbeiter_id}/dokumente", response_model=list[MitarbeiterDokumentResponse])
 async def list_dokumente(
     mitarbeiter_id: str,
-    org_id: str = Depends(_get_org_id),
+    org_id: str = Depends(get_current_org_id),
     db: AsyncSession = Depends(get_db),
 ):
     # Verify employee belongs to org
@@ -408,12 +386,11 @@ async def list_dokumente(
     )
     return result.scalars().all()
 
-
 @router.post("/{mitarbeiter_id}/dokumente", response_model=MitarbeiterDokumentResponse, status_code=201)
 async def create_dokument(
     mitarbeiter_id: str,
     data: MitarbeiterDokumentCreate,
-    org_id: str = Depends(_get_org_id),
+    org_id: str = Depends(get_current_org_id),
     db: AsyncSession = Depends(get_db),
 ):
     # Verify employee belongs to org
@@ -441,12 +418,11 @@ async def create_dokument(
     await db.refresh(dok)
     return dok
 
-
 @router.delete("/{mitarbeiter_id}/dokumente/{dokument_id}", status_code=204)
 async def delete_dokument(
     mitarbeiter_id: str,
     dokument_id: str,
-    org_id: str = Depends(_get_org_id),
+    org_id: str = Depends(get_current_org_id),
     db: AsyncSession = Depends(get_db),
 ):
     # Verify employee belongs to org

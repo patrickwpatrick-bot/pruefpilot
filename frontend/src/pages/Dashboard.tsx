@@ -8,6 +8,9 @@ import api from '@/lib/api'
 import type { Arbeitsmittel } from '@/types'
 import { LeitfadenTooltip } from '@/components/ui/LeitfadenTooltip'
 import { LEITFADEN_TEXTE } from '@/data/leitfaden-texte'
+import { Button } from '@/components/ui/Button'
+import { Spinner } from '@/components/ui/Spinner'
+import { Modal } from '@/components/ui/Modal'
 
 interface ComplianceScore {
   score: number
@@ -181,7 +184,7 @@ export function Dashboard() {
   if (loading) {
     return (
       <div className="p-8 flex items-center justify-center h-64">
-        <div className="w-5 h-5 border-2 border-gray-300 border-t-black rounded-full animate-spin" />
+        <Spinner size="md" />
       </div>
     )
   }
@@ -331,14 +334,16 @@ export function Dashboard() {
           </div>
           <p className="text-black font-medium mb-1">Noch keine Arbeitsmittel</p>
           <p className="text-sm text-gray-400 mb-5">Erfasse dein erstes Arbeitsmittel, um loszulegen.</p>
-          <Link to="/arbeitsmittel" className="inline-flex items-center gap-2 px-5 py-2.5 bg-black text-white text-sm font-medium rounded-lg hover:bg-gray-800 transition-colors">
-            Arbeitsmittel anlegen <ArrowRight size={14} />
+          <Link to="/arbeitsmittel" className="inline-block">
+            <Button variant="primary" icon={<ArrowRight size={14} />}>
+              Arbeitsmittel anlegen
+            </Button>
           </Link>
         </div>
       ) : (
         <>
           {/* Calendar + Detail Panel */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8 relative">
 
             {/* ── Calendar ─────────────────────────────────────────────── */}
             <LeitfadenTooltip
@@ -349,7 +354,11 @@ export function Dashboard() {
               <div className="lg:col-span-2 bg-white rounded-xl border border-gray-200 p-6">
               {/* Month Navigation */}
               <div className="flex items-center justify-between mb-5">
-                <button onClick={prevMonth} className="p-2 hover:bg-gray-50 rounded-lg transition-colors">
+                <button
+                  onClick={prevMonth}
+                  className="p-2 hover:bg-gray-50 rounded-lg transition-colors"
+                  aria-label="Vorheriger Monat"
+                >
                   <ChevronLeft size={18} className="text-gray-600" />
                 </button>
 
@@ -357,25 +366,43 @@ export function Dashboard() {
                   <button
                     onClick={() => setYearPickerOpen(o => !o)}
                     className="flex items-center gap-1.5 text-base font-semibold text-black hover:text-gray-600 transition-colors"
+                    aria-label={`Kalender: ${MONTHS[currentMonth]} ${currentYear}, klicke zum Jahreswechsel`}
+                    aria-expanded={yearPickerOpen}
+                    aria-haspopup="dialog"
                   >
                     {MONTHS[currentMonth]} {currentYear}
                     <ChevronDown size={13} className={`text-gray-400 transition-transform ${yearPickerOpen ? 'rotate-180' : ''}`} />
                   </button>
-                  {yearPickerOpen && (
-                    <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 bg-white rounded-xl border border-gray-200 shadow-lg z-20 p-2 min-w-[200px]">
-                      <div className="grid grid-cols-3 gap-1">
-                        {Array.from({ length: 11 }, (_, i) => currentYear - 5 + i).map(year => (
-                          <button key={year}
-                            onClick={() => { setCurrentDate(new Date(year, currentMonth, 1)); setYearPickerOpen(false) }}
-                            className={`px-2 py-2 rounded-lg text-sm font-medium transition-colors ${year === currentYear ? 'bg-black text-white' : 'hover:bg-gray-50 text-gray-600'}`}
-                          >{year}</button>
-                        ))}
-                      </div>
+                  <Modal
+                    open={yearPickerOpen}
+                    onClose={() => setYearPickerOpen(false)}
+                    title="Jahr auswählen"
+                    size="sm"
+                  >
+                    <div className="grid grid-cols-3 gap-2 p-4">
+                      {Array.from({ length: 11 }, (_, i) => currentYear - 5 + i).map(year => (
+                        <Button
+                          key={year}
+                          variant={year === currentYear ? 'primary' : 'secondary'}
+                          size="sm"
+                          onClick={() => {
+                            setCurrentDate(new Date(year, currentMonth, 1))
+                            setYearPickerOpen(false)
+                          }}
+                          className="w-full"
+                        >
+                          {year}
+                        </Button>
+                      ))}
                     </div>
-                  )}
+                  </Modal>
                 </div>
 
-                <button onClick={nextMonth} className="p-2 hover:bg-gray-50 rounded-lg transition-colors">
+                <button
+                  onClick={nextMonth}
+                  className="p-2 hover:bg-gray-50 rounded-lg transition-colors"
+                  aria-label="Nächster Monat"
+                >
                   <ChevronRight size={18} className="text-gray-600" />
                 </button>
               </div>
@@ -559,13 +586,15 @@ export function Dashboard() {
 
           {/* Quick Actions */}
           <div className="flex flex-col sm:flex-row gap-3 mt-8 pt-6 border-t border-gray-200">
-            <Link to="/pruefungen"
-              className="flex-1 flex items-center justify-center gap-2 px-5 py-3 bg-black text-white text-sm font-medium rounded-lg hover:bg-gray-800 transition-colors">
-              <Plus size={16} /> Prüfung starten
+            <Link to="/pruefungen" className="flex-1">
+              <Button variant="primary" icon={<Plus size={16} />} className="w-full">
+                Prüfung starten
+              </Button>
             </Link>
-            <Link to="/unterweisungen"
-              className="flex-1 flex items-center justify-center gap-2 px-5 py-3 border border-gray-200 text-black text-sm font-medium rounded-lg hover:bg-gray-50 transition-colors">
-              <FileText size={16} /> Unterweisung versenden
+            <Link to="/unterweisungen" className="flex-1">
+              <Button variant="secondary" icon={<FileText size={16} />} className="w-full">
+                Unterweisung versenden
+              </Button>
             </Link>
           </div>
         </>

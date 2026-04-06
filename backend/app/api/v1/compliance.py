@@ -59,9 +59,14 @@ async def get_compliance_score(
     # 2. Prüfungen-Aktualität (0-60 Punkte)
     pruef_score = (gruen / total) * 60 if total > 0 else 0
 
-    # 3. Offene Mängel (0-30 Punkte Abzug) — join through Pruefung → Arbeitsmittel
+    # 3. Offene Mängel (0-30 Punkte Abzug) — SQL aggregation instead of Python counting
     result = await db.execute(
-        select(Mangel)
+        select(
+            func.sum(func.cast(Mangel.schweregrad == "rot", func.Integer)).label("rot_count"),
+            func.sum(func.cast(Mangel.schweregrad == "orange", func.Integer)).label("orange_count"),
+            func.sum(func.cast(Mangel.schweregrad == "gruen", func.Integer)).label("gruen_count"),
+            func.count(Mangel.id).label("total_count"),
+        )
         .join(Pruefung, Mangel.pruefung_id == Pruefung.id)
         .join(Arbeitsmittel, Pruefung.arbeitsmittel_id == Arbeitsmittel.id)
         .where(
@@ -69,10 +74,11 @@ async def get_compliance_score(
             Mangel.status != "erledigt",
         )
     )
-    offene_maengel = result.scalars().all()
-    maengel_rot = sum(1 for m in offene_maengel if m.schweregrad == "rot")
-    maengel_orange = sum(1 for m in offene_maengel if m.schweregrad == "orange")
-    maengel_gruen_count = sum(1 for m in offene_maengel if m.schweregrad == "gruen")
+    row = result.first()
+    maengel_rot = row.rot_count or 0
+    maengel_orange = row.orange_count or 0
+    maengel_gruen_count = row.gruen_count or 0
+    offene_maengel_count = row.total_count or 0
 
     mangel_abzug = (maengel_rot * 10) + (maengel_orange * 5) + (maengel_gruen_count * 2)
     mangel_abzug = min(mangel_abzug, 30)  # max 30 Punkte Abzug
@@ -145,7 +151,7 @@ async def get_compliance_score(
         "ampel": ampel,
         "details": {
             "pruefungen_aktuell_prozent": round((gruen / total) * 100) if total > 0 else 0,
-            "maengel_offen": len(offene_maengel),
+            "maengel_offen": offene_maengel_count,
             "maengel_rot": maengel_rot,
             "maengel_orange": maengel_orange,
             "arbeitsmittel_gesamt": total,

@@ -3,7 +3,7 @@
  */
 import { useEffect, useState } from 'react'
 import { AlertTriangle, ChevronDown, X } from 'lucide-react'
-import { useAuth } from '@/hooks/useAuth'
+import api from '@/lib/api'
 import { LoadingState } from '@/components/ui/LoadingState'
 import { EmptyState } from '@/components/ui/EmptyState'
 
@@ -51,7 +51,6 @@ interface FlattenedMangel extends Mangel {
 }
 
 export function MaengelPage() {
-  const { token } = useAuth()
   const [allMaengel, setAllMaengel] = useState<FlattenedMangel[]>([])
   const [loading, setLoading] = useState(true)
   const [expandedId, setExpandedId] = useState<string | null>(null)
@@ -69,30 +68,25 @@ export function MaengelPage() {
   const [sortField, setSortField] = useState<SortField>('date')
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc')
 
-  // Load all defects from inspections
+  // Load all defects from dedicated maengel endpoint
   const loadData = async () => {
     setLoading(true)
     try {
-      const response = await fetch('/api/v1/pruefungen', {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      })
-      if (!response.ok) throw new Error('Failed to fetch')
-
-      const pruefungen: Pruefung[] = await response.json()
-      const flattened: FlattenedMangel[] = []
-
-      pruefungen.forEach(p => {
-        p.maengel?.forEach(m => {
-          flattened.push({
-            ...m,
-            pruefung_id: p.id,
-            pruefung_name: p.name,
-            created_at: new Date().toISOString(), // Backend should provide this
-          })
-        })
-      })
+      const res = await api.get('/maengel')
+      const maengel = res.data
+      const flattened: FlattenedMangel[] = maengel.map((m: any) => ({
+        id: m.id,
+        beschreibung: m.beschreibung,
+        schweregrad: m.schweregrad,
+        status: m.status,
+        frist: m.frist,
+        erledigt_am: m.erledigt_am,
+        erledigt_kommentar: null,
+        fotos: [],
+        pruefung_id: m.pruefung_id,
+        pruefung_name: m.arbeitsmittel_name || '—',
+        created_at: m.created_at || new Date().toISOString(),
+      }))
 
       setAllMaengel(flattened)
     } catch (error) {
@@ -103,28 +97,17 @@ export function MaengelPage() {
   }
 
   useEffect(() => {
-    if (token) {
-      loadData()
-    }
-  }, [token])
+    loadData()
+  }, [])
 
   // Handle status change with comment
   const handleStatusChange = async (mangel: FlattenedMangel, newStatus: string, comment?: string) => {
     setSubmittingId(mangel.id)
     try {
-      const response = await fetch(`/api/v1/pruefungen/${mangel.pruefung_id}/maengel/${mangel.id}`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          status: newStatus,
-          ...(newStatus === 'erledigt' && comment && { erledigt_kommentar: comment }),
-        }),
+      await api.patch(`/pruefungen/${mangel.pruefung_id}/maengel/${mangel.id}`, {
+        status: newStatus,
+        ...(newStatus === 'erledigt' && comment && { erledigt_kommentar: comment }),
       })
-
-      if (!response.ok) throw new Error('Failed to update')
 
       // Update local state
       setAllMaengel(prev =>

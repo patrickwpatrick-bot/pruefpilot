@@ -33,7 +33,7 @@ LOGIN_RATE_WINDOW = 300  # in 5 Minuten
 router = APIRouter(prefix="/auth", tags=["Auth"])
 
 
-@router.post("/register", response_model=TokenResponse, status_code=status.HTTP_201_CREATED)
+@router.post("/register", response_model=TokenResponse, status_code=status.HTTP_201_CREATED, summary="Register new user", description="Create a new user account and organization. Returns access and refresh tokens.")
 async def register(data: RegisterRequest, db: AsyncSession = Depends(get_db)):
     """Register a new user + create their organisation."""
     # Check if email already exists
@@ -75,7 +75,7 @@ async def register(data: RegisterRequest, db: AsyncSession = Depends(get_db)):
     )
 
 
-@router.post("/login", response_model=TokenResponse)
+@router.post("/login", response_model=TokenResponse, summary="Login user", description="Authenticate with email and password. Includes rate limiting protection (5 attempts per 5 minutes).")
 async def login(data: LoginRequest, request: Request, db: AsyncSession = Depends(get_db)):
     """Login with email + password."""
     # Fix 1: Rate Limiting für Brute-Force-Schutz
@@ -112,7 +112,7 @@ async def login(data: LoginRequest, request: Request, db: AsyncSession = Depends
     )
 
 
-@router.post("/refresh", response_model=TokenResponse)
+@router.post("/refresh", response_model=TokenResponse, summary="Refresh access token", description="Obtain a new access token using a valid refresh token.")
 async def refresh_token(data: RefreshRequest, db: AsyncSession = Depends(get_db)):
     """Get new access token using refresh token."""
     payload = decode_token(data.refresh_token)
@@ -133,7 +133,7 @@ async def refresh_token(data: RefreshRequest, db: AsyncSession = Depends(get_db)
     )
 
 
-@router.get("/me", response_model=UserResponse)
+@router.get("/me", response_model=UserResponse, summary="Get user profile", description="Retrieve the profile of the currently authenticated user.")
 async def get_me(
     user_id: str = Depends(get_current_user_id),
     db: AsyncSession = Depends(get_db),

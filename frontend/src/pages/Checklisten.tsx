@@ -3,6 +3,8 @@
  */
 import { useEffect, useState } from 'react'
 import { Plus, Trash2, ListChecks, ChevronDown, ChevronRight, X, Copy, Edit2, GripVertical } from 'lucide-react'
+import { formatDistanceToNow } from 'date-fns'
+import { de } from 'date-fns/locale'
 import api from '@/lib/api'
 import { useAuth } from '@/hooks/useAuth'
 import { LoadingState } from '@/components/ui/LoadingState'
@@ -84,16 +86,11 @@ export function ChecklistenPage() {
 
   const formatDate = (dateString?: string) => {
     if (!dateString) return 'Nie verwendet'
-    const date = new Date(dateString)
-    const now = new Date()
-    const diffMs = now.getTime() - date.getTime()
-    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24))
-
-    if (diffDays === 0) return 'Heute'
-    if (diffDays === 1) return 'Gestern'
-    if (diffDays < 7) return `vor ${diffDays} Tagen`
-    if (diffDays < 30) return `vor ${Math.floor(diffDays / 7)} Wochen`
-    return `vor ${Math.floor(diffDays / 30)} Monaten`
+    try {
+      return `vor ${formatDistanceToNow(new Date(dateString), { locale: de, addSuffix: false })}`
+    } catch {
+      return 'Nie verwendet'
+    }
   }
 
   const handleCreate = async (e: React.FormEvent) => {

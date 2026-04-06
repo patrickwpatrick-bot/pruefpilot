@@ -70,6 +70,7 @@ export default function App() {
             <Route path="/unterweisungen" element={<UnterweisungenPage />} />
             <Route path="/mitarbeiter" element={<MitarbeiterPage />} />
             <Route path="/gbu" element={<GBUPage />} />
+            <Route path="/gefaehrdungen" element={<GBUPage />} />
             <Route path="/gefahrstoffe" element={<GefahrstoffePage />} />
             <Route path="/fremdfirmen" element={<FremdfirmenPage />} />
             <Route path="/maengel" element={<MaengelPage />} />

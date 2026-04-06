@@ -1,54 +1,39 @@
 """
 Mängel API - List and update defects across all inspections
+
+SEC-Fix 2026-04-06: Zentrale get_current_org_id Dependency statt lokaler _get_org_id.
+SEC-Fix 2026-04-06: update_mangel_status prüft jetzt org_id via Join auf Pruefung→User.
+Vorher: Cross-Tenant-Zugriff auf fremde Mängel möglich (DSGVO-Verletzung).
 """
 from datetime import datetime, timezone
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
-from sqlalchemy.orm import selectinload
+from sqlalchemy.orm import selectinload, joinedload
 from app.core.database import get_db
-from app.core.security import decode_token
+from app.core.security import get_current_org_id
 from app.models.mangel import Mangel
 from app.models.pruefung import Pruefung
 from app.models.user import User
 from app.schemas.pruefung import MangelStatusUpdate
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
 router = APIRouter(prefix="/maengel", tags=["Mängel"])
-security = HTTPBearer()
 
 
-async def _get_org_id(credentials: HTTPAuthorizationCredentials = Depends(security)) -> str:
-    payload = decode_token(credentials.credentials)
-    return payload.get("org")
-
-
-@router.get("")
+@router.get("", summary="List defects", description="Retrieve all defects (Mängel) across all inspections for the organisation with filtering by status.")
 async def list_maengel(
-    org_id: str = Depends(_get_org_id),
+    org_id: str = Depends(get_current_org_id),
     db: AsyncSession = Depends(get_db),
-    status_filter: str | None = None,
+    status_filter: str | None = Query(None, description="Filter by status: offen, in_bearbeitung, erledigt"),
 ):
     """List all defects across all inspections for the organisation."""
-    # Get all user IDs in org
-    result = await db.execute(
-        select(User.id).where(User.organisation_id == org_id)
-    )
-    user_ids = [row[0] for row in result.all()]
-
-    # Get all pruefungen for org
-    result = await db.execute(
-        select(Pruefung.id).where(Pruefung.pruefer_id.in_(user_ids))
-    )
-    pruefung_ids = [row[0] for row in result.all()]
-
-    if not pruefung_ids:
-        return []
-
+    # Direkter Join: Mangel → Pruefung → User.organisation_id
     query = (
         select(Mangel)
+        .join(Pruefung, Mangel.pruefung_id == Pruefung.id)
+        .join(User, Pruefung.pruefer_id == User.id)
         .options(selectinload(Mangel.pruefung).selectinload(Pruefung.arbeitsmittel))
-        .where(Mangel.pruefung_id.in_(pruefung_ids))
+        .where(User.organisation_id == org_id)
     )
 
     if status_filter:
@@ -74,16 +59,24 @@ async def list_maengel(
     ]
 
 
-@router.put("/{mangel_id}/status")
+@router.put("/{mangel_id}/status", summary="Update defect status", description="Update the status of a defect (offen → in_bearbeitung → erledigt). Includes optional completion comments. Cross-tenant access is prevented.")
 async def update_mangel_status(
     mangel_id: str,
     data: MangelStatusUpdate,
-    org_id: str = Depends(_get_org_id),
+    org_id: str = Depends(get_current_org_id),
     db: AsyncSession = Depends(get_db),
 ):
-    """Update defect status (offen → in_bearbeitung → erledigt)."""
+    """Update defect status (offen → in_bearbeitung → erledigt).
+
+    SEC-Fix: Validiert org_id via Join auf Pruefung→User. Verhindert
+    Cross-Tenant-Zugriff auf Mängel fremder Organisationen.
+    """
+    # Mangel laden MIT org_id-Validierung über Pruefung → User
     result = await db.execute(
-        select(Mangel).where(Mangel.id == mangel_id)
+        select(Mangel)
+        .join(Pruefung, Mangel.pruefung_id == Pruefung.id)
+        .join(User, Pruefung.pruefer_id == User.id)
+        .where(Mangel.id == mangel_id, User.organisation_id == org_id)
     )
     mangel = result.scalar_one_or_none()
     if not mangel:

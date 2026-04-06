@@ -23,7 +23,10 @@ export function BranchenAutocomplete({ value, onChange, placeholder, className }
   const dropdownRef = useRef<HTMLDivElement>(null)
 
   // Sync display text when value changes externally
-  const selectedLabel = value && BRANCHEN[value] ? BRANCHEN[value].label : ''
+  // Fallback: if value is not a BRANCHEN key, show it as-is (z.B. Label-String aus Onboarding)
+  const selectedLabel = value
+    ? BRANCHEN[value]?.label || value
+    : ''
 
   useEffect(() => {
     if (query.length >= 1) {

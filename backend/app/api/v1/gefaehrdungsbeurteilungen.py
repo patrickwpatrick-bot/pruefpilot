@@ -9,20 +9,15 @@ from pydantic import BaseModel, Field
 from typing import Optional
 from datetime import datetime, date
 from app.core.database import get_db
-from app.core.security import decode_token
+from app.core.security import get_current_org_id, get_current_user_id
 from app.models.gefaehrdungsbeurteilung import Gefaehrdungsbeurteilung, GBU_Gefaehrdung
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
 router = APIRouter(prefix="/gbus", tags=["Gefährdungsbeurteilungen"])
-security = HTTPBearer()
-
-
 # --- Schemas ---
 
 class GefaehrdungUpdate(BaseModel):
     status: Optional[str] = None
     massnahmen: Optional[str] = None
-
 
 class GefaehrdungCreate(BaseModel):
     gefaehrdung: str = Field(..., min_length=1)
@@ -31,7 +26,6 @@ class GefaehrdungCreate(BaseModel):
     weitere_massnahmen: Optional[str] = None
     verantwortlich: Optional[str] = None
     frist: Optional[date] = None
-
 
 class GefaehrdungResponse(BaseModel):
     id: str
@@ -49,19 +43,16 @@ class GefaehrdungResponse(BaseModel):
     class Config:
         from_attributes = True
 
-
 class GefaehrdungsbeurteilungCreate(BaseModel):
     titel: str = Field(..., min_length=1, max_length=255)
     arbeitsbereich: str = Field(..., min_length=1, max_length=255)
     datum: date
     bemerkung: Optional[str] = None
 
-
 class GefaehrdungsbeurteilungUpdate(BaseModel):
     status: Optional[str] = None
     bemerkung: Optional[str] = None
     naechste_ueberpruefung_am: Optional[date] = None
-
 
 class GefaehrdungsbeurteilungResponse(BaseModel):
     id: str
@@ -77,20 +68,9 @@ class GefaehrdungsbeurteilungResponse(BaseModel):
     class Config:
         from_attributes = True
 
-
-async def _get_org_id(credentials: HTTPAuthorizationCredentials = Depends(security)) -> str:
-    payload = decode_token(credentials.credentials)
-    return payload.get("org")
-
-
-async def _get_user_id(credentials: HTTPAuthorizationCredentials = Depends(security)) -> str:
-    payload = decode_token(credentials.credentials)
-    return payload.get("sub")
-
-
 @router.get("", response_model=list[GefaehrdungsbeurteilungResponse])
 async def list_gbu(
-    org_id: str = Depends(_get_org_id),
+    org_id: str = Depends(get_current_org_id),
     db: AsyncSession = Depends(get_db),
 ):
     """List all GBUs for org with gefaehrdungen loaded."""
@@ -102,12 +82,11 @@ async def list_gbu(
     )
     return result.scalars().all()
 
-
 @router.post("", response_model=GefaehrdungsbeurteilungResponse, status_code=201)
 async def create_gbu(
     data: GefaehrdungsbeurteilungCreate,
-    org_id: str = Depends(_get_org_id),
-    user_id: str = Depends(_get_user_id),
+    org_id: str = Depends(get_current_org_id),
+    user_id: str = Depends(get_current_user_id),
     db: AsyncSession = Depends(get_db),
 ):
     """Create a new GBU."""
@@ -130,11 +109,10 @@ async def create_gbu(
     )
     return result.scalar_one()
 
-
 @router.get("/{gbu_id}", response_model=GefaehrdungsbeurteilungResponse)
 async def get_gbu(
     gbu_id: str,
-    org_id: str = Depends(_get_org_id),
+    org_id: str = Depends(get_current_org_id),
     db: AsyncSession = Depends(get_db),
 ):
     """Get a single GBU with gefaehrdungen."""
@@ -151,12 +129,11 @@ async def get_gbu(
         raise HTTPException(status_code=404, detail="Gefaehrdungsbeurteilung nicht gefunden")
     return gbu
 
-
 @router.put("/{gbu_id}", response_model=GefaehrdungsbeurteilungResponse)
 async def update_gbu(
     gbu_id: str,
     data: GefaehrdungsbeurteilungUpdate,
-    org_id: str = Depends(_get_org_id),
+    org_id: str = Depends(get_current_org_id),
     db: AsyncSession = Depends(get_db),
 ):
     """Update a GBU."""
@@ -183,12 +160,11 @@ async def update_gbu(
     )
     return result.scalar_one()
 
-
 @router.post("/{gbu_id}/gefaehrdungen", response_model=GefaehrdungResponse, status_code=201)
 async def add_gefaehrdung(
     gbu_id: str,
     data: GefaehrdungCreate,
-    org_id: str = Depends(_get_org_id),
+    org_id: str = Depends(get_current_org_id),
     db: AsyncSession = Depends(get_db),
 ):
     """Add a hazard to a GBU."""
@@ -217,13 +193,12 @@ async def add_gefaehrdung(
     await db.refresh(gefaehrdung)
     return gefaehrdung
 
-
 @router.put("/{gbu_id}/gefaehrdungen/{gef_id}", response_model=GefaehrdungResponse)
 async def update_gefaehrdung(
     gbu_id: str,
     gef_id: str,
     data: GefaehrdungUpdate,
-    org_id: str = Depends(_get_org_id),
+    org_id: str = Depends(get_current_org_id),
     db: AsyncSession = Depends(get_db),
 ):
     """Update a hazard in a GBU."""
@@ -260,11 +235,10 @@ async def update_gefaehrdung(
     await db.refresh(gefaehrdung)
     return gefaehrdung
 
-
 @router.delete("/{gbu_id}", status_code=204)
 async def delete_gbu(
     gbu_id: str,
-    org_id: str = Depends(_get_org_id),
+    org_id: str = Depends(get_current_org_id),
     db: AsyncSession = Depends(get_db),
 ):
     """Delete a GBU."""

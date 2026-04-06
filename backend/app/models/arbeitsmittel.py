@@ -3,13 +3,20 @@ Arbeitsmittel - Equipment/asset that needs regular inspections
 """
 import uuid
 from datetime import datetime, date, timezone
-from sqlalchemy import String, DateTime, Date, Integer, Float, ForeignKey, Text
+from sqlalchemy import String, DateTime, Date, Integer, Float, ForeignKey, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.core.database import Base
 
 
+def default_deleted_at():
+    return None
+
+
 class Arbeitsmittel(Base):
     __tablename__ = "arbeitsmittel"
+    __table_args__ = (
+        UniqueConstraint("organisation_id", "name", name="uq_arbeitsmittel_org_name"),
+    )
 
     id: Mapped[str] = mapped_column(
         String(36), primary_key=True, default=lambda: str(uuid.uuid4())
@@ -49,6 +56,11 @@ class Arbeitsmittel(Base):
         DateTime(timezone=True),
         default=lambda: datetime.now(timezone.utc),
         onupdate=lambda: datetime.now(timezone.utc),
+    )
+
+    # Soft-delete: NULL = not deleted, timestamp = deleted at this time
+    deleted_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), default=None, nullable=True, index=True
     )
 
     # Relationships
