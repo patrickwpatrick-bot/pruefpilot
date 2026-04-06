@@ -630,6 +630,22 @@ async def seed_demo_data(
     Pre-generates all UUIDs and uses single batch insert + one commit.
     """
     import json as _json
+    import traceback as _tb
+    from random import randint
+
+    try:
+        return await _seed_demo_data_impl(org_id, user_id, db)
+    except Exception as exc:
+        await db.rollback()
+        return {"error": str(exc), "traceback": _tb.format_exc()}
+
+
+async def _seed_demo_data_impl(
+    org_id: uuid.UUID,
+    user_id: uuid.UUID,
+    db: AsyncSession,
+):
+    import json as _json
     from random import randint
 
     # =========================================================================
