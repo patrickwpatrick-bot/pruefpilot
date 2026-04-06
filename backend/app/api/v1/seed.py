@@ -692,6 +692,16 @@ async def _seed_demo_data_impl(
     await db.execute(delete(Abteilung).where(Abteilung.organisation_id == org_id))
     await db.execute(delete(Standort).where(Standort.organisation_id == org_id))
     # Delete demo users globally (emails are unique across all orgs)
+    # First delete all data referencing demo users from ANY org
+    _demo_user_ids = select(User.id).where(
+        User.email.in_(["demo.pruefer@pruefpilot.de", "demo.admin@pruefpilot.de"]))
+    await db.execute(delete(Mangel).where(
+        Mangel.pruefung_id.in_(select(Pruefung.id).where(Pruefung.pruefer_id.in_(_demo_user_ids)))))
+    await db.execute(delete(PruefPunkt).where(
+        PruefPunkt.pruefung_id.in_(select(Pruefung.id).where(Pruefung.pruefer_id.in_(_demo_user_ids)))))
+    await db.execute(delete(Pruefung).where(Pruefung.pruefer_id.in_(_demo_user_ids)))
+    await db.execute(delete(Gefaehrdungsbeurteilung).where(
+        Gefaehrdungsbeurteilung.erstellt_von_id.in_(_demo_user_ids)))
     await db.execute(delete(User).where(
         User.email.in_(["demo.pruefer@pruefpilot.de", "demo.admin@pruefpilot.de"])))
     await db.flush()
