@@ -141,8 +141,24 @@ async def get_me(
 ):
     """Get current user profile."""
     import uuid as _uuid
-    result = await db.execute(select(User).where(User.id == _uuid.UUID(user_id)))
-    user = result.scalar_one_or_none()
-    if not user:
-        raise HTTPException(status_code=404, detail="User nicht gefunden")
-    return user
+    import logging
+    logger = logging.getLogger(__name__)
+    try:
+        result = await db.execute(select(User).where(User.id == _uuid.UUID(user_id)))
+        user = result.scalar_one_or_none()
+        if not user:
+            raise HTTPException(status_code=404, detail="User nicht gefunden")
+        # Explicitly build response to avoid lazy-loading issues
+        return UserResponse(
+            id=str(user.id),
+            email=user.email,
+            vorname=user.vorname,
+            nachname=user.nachname,
+            rolle=user.rolle,
+            organisation_id=str(user.organisation_id),
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"get_me error for user {user_id}: {type(e).__name__}: {e}")
+        raise HTTPException(status_code=500, detail=f"Interner Fehler: {type(e).__name__}: {str(e)}")
