@@ -668,7 +668,7 @@ async def seed_demo_data(
     # Standorte
     standorte_data = [
         {
-            "id": str(uuid.uuid4()),
+            "id": uuid.uuid4(),
             "name": "Hauptwerk Stuttgart",
             "strasse": "Industriestraße",
             "hausnummer": "42",
@@ -677,7 +677,7 @@ async def seed_demo_data(
             "gebaeude": "Halle A",
         },
         {
-            "id": str(uuid.uuid4()),
+            "id": uuid.uuid4(),
             "name": "Außenlager Nord",
             "strasse": "Hafenweg",
             "hausnummer": "8",
@@ -685,7 +685,7 @@ async def seed_demo_data(
             "ort": "Stuttgart",
         },
         {
-            "id": str(uuid.uuid4()),
+            "id": uuid.uuid4(),
             "name": "Bürogebäude Mitte",
             "strasse": "Königstraße",
             "hausnummer": "15",
@@ -696,60 +696,60 @@ async def seed_demo_data(
 
     # Abteilungen
     abteilungen_data = [
-        {"id": str(uuid.uuid4()), "name": "Produktion"},
-        {"id": str(uuid.uuid4()), "name": "Verwaltung"},
-        {"id": str(uuid.uuid4()), "name": "Lager & Logistik"},
+        {"id": uuid.uuid4(), "name": "Produktion"},
+        {"id": uuid.uuid4(), "name": "Verwaltung"},
+        {"id": uuid.uuid4(), "name": "Lager & Logistik"},
     ]
 
     # Mitarbeiter
     mitarbeiter_data = [
         # Produktion
-        {"id": str(uuid.uuid4()), "vorname": "Thomas", "nachname": "Müller", "beruf": "Werkstattleiter", "abteilung": "Produktion", "qualifikationen": ["kranschein", "ersthelfer"]},
-        {"id": str(uuid.uuid4()), "vorname": "Sandra", "nachname": "Weber", "beruf": "Sicherheitsbeauftragte", "abteilung": "Produktion", "qualifikationen": ["ersthelfer"]},
-        {"id": str(uuid.uuid4()), "vorname": "Michael", "nachname": "Schmidt", "beruf": "Elektriker", "abteilung": "Produktion", "qualifikationen": ["hochspannungsschein"]},
-        {"id": str(uuid.uuid4()), "vorname": "Lisa", "nachname": "Hoffmann", "beruf": "Meister", "abteilung": "Produktion", "qualifikationen": ["meisterschein"]},
-        {"id": str(uuid.uuid4()), "vorname": "Klaus", "nachname": "Hoffmann", "beruf": "CNC-Fräser", "abteilung": "Produktion", "qualifikationen": []},
-        {"id": str(uuid.uuid4()), "vorname": "Petra", "nachname": "Lang", "beruf": "CNC-Dreher", "abteilung": "Produktion", "qualifikationen": []},
-        {"id": str(uuid.uuid4()), "vorname": "Martin", "nachname": "Bauer", "beruf": "Schweißer", "abteilung": "Produktion", "qualifikationen": ["schweisserschein"]},
-        {"id": str(uuid.uuid4()), "vorname": "Brigitte", "nachname": "Schäfer", "beruf": "Schlosser", "abteilung": "Produktion", "qualifikationen": []},
-        {"id": str(uuid.uuid4()), "vorname": "Wolfgang", "nachname": "Keller", "beruf": "Instandhalter", "abteilung": "Produktion", "qualifikationen": []},
+        {"id": uuid.uuid4(), "vorname": "Thomas", "nachname": "Müller", "beruf": "Werkstattleiter", "abteilung": "Produktion", "qualifikationen": ["kranschein", "ersthelfer"]},
+        {"id": uuid.uuid4(), "vorname": "Sandra", "nachname": "Weber", "beruf": "Sicherheitsbeauftragte", "abteilung": "Produktion", "qualifikationen": ["ersthelfer"]},
+        {"id": uuid.uuid4(), "vorname": "Michael", "nachname": "Schmidt", "beruf": "Elektriker", "abteilung": "Produktion", "qualifikationen": ["hochspannungsschein"]},
+        {"id": uuid.uuid4(), "vorname": "Lisa", "nachname": "Hoffmann", "beruf": "Meister", "abteilung": "Produktion", "qualifikationen": ["meisterschein"]},
+        {"id": uuid.uuid4(), "vorname": "Klaus", "nachname": "Hoffmann", "beruf": "CNC-Fräser", "abteilung": "Produktion", "qualifikationen": []},
+        {"id": uuid.uuid4(), "vorname": "Petra", "nachname": "Lang", "beruf": "CNC-Dreher", "abteilung": "Produktion", "qualifikationen": []},
+        {"id": uuid.uuid4(), "vorname": "Martin", "nachname": "Bauer", "beruf": "Schweißer", "abteilung": "Produktion", "qualifikationen": ["schweisserschein"]},
+        {"id": uuid.uuid4(), "vorname": "Brigitte", "nachname": "Schäfer", "beruf": "Schlosser", "abteilung": "Produktion", "qualifikationen": []},
+        {"id": uuid.uuid4(), "vorname": "Wolfgang", "nachname": "Keller", "beruf": "Instandhalter", "abteilung": "Produktion", "qualifikationen": []},
         # Verwaltung
-        {"id": str(uuid.uuid4()), "vorname": "Markus", "nachname": "Richter", "beruf": "Betriebsleiter", "abteilung": "Verwaltung", "qualifikationen": []},
-        {"id": str(uuid.uuid4()), "vorname": "Anna", "nachname": "Fischer", "beruf": "Qualitätsprüferin", "abteilung": "Verwaltung", "qualifikationen": []},
-        {"id": str(uuid.uuid4()), "vorname": "Christian", "nachname": "Neumann", "beruf": "Arbeitsvorbereiter", "abteilung": "Verwaltung", "qualifikationen": []},
+        {"id": uuid.uuid4(), "vorname": "Markus", "nachname": "Richter", "beruf": "Betriebsleiter", "abteilung": "Verwaltung", "qualifikationen": []},
+        {"id": uuid.uuid4(), "vorname": "Anna", "nachname": "Fischer", "beruf": "Qualitätsprüferin", "abteilung": "Verwaltung", "qualifikationen": []},
+        {"id": uuid.uuid4(), "vorname": "Christian", "nachname": "Neumann", "beruf": "Arbeitsvorbereiter", "abteilung": "Verwaltung", "qualifikationen": []},
         # Lager & Logistik
-        {"id": str(uuid.uuid4()), "vorname": "Andreas", "nachname": "Koch", "beruf": "Lagerist", "abteilung": "Lager & Logistik", "qualifikationen": ["staplerschein"]},
-        {"id": str(uuid.uuid4()), "vorname": "Julia", "nachname": "Bauer", "beruf": "Auszubildende", "abteilung": "Lager & Logistik", "qualifikationen": []},
-        {"id": str(uuid.uuid4()), "vorname": "Rolf", "nachname": "Zeller", "beruf": "Produktionshelfer", "abteilung": "Lager & Logistik", "qualifikationen": []},
-        {"id": str(uuid.uuid4()), "vorname": "Carla", "nachname": "Görz", "beruf": "Lagermeister", "abteilung": "Lager & Logistik", "qualifikationen": ["staplerschein", "kranschein"]},
-        {"id": str(uuid.uuid4()), "vorname": "Daniel", "nachname": "Wagner", "beruf": "Sicherheitsbeauftragter", "abteilung": "Lager & Logistik", "qualifikationen": ["ersthelfer"]},
-        {"id": str(uuid.uuid4()), "vorname": "Stefanie", "nachname": "Meyer", "beruf": "Konstrukteur", "abteilung": "Verwaltung", "qualifikationen": []},
+        {"id": uuid.uuid4(), "vorname": "Andreas", "nachname": "Koch", "beruf": "Lagerist", "abteilung": "Lager & Logistik", "qualifikationen": ["staplerschein"]},
+        {"id": uuid.uuid4(), "vorname": "Julia", "nachname": "Bauer", "beruf": "Auszubildende", "abteilung": "Lager & Logistik", "qualifikationen": []},
+        {"id": uuid.uuid4(), "vorname": "Rolf", "nachname": "Zeller", "beruf": "Produktionshelfer", "abteilung": "Lager & Logistik", "qualifikationen": []},
+        {"id": uuid.uuid4(), "vorname": "Carla", "nachname": "Görz", "beruf": "Lagermeister", "abteilung": "Lager & Logistik", "qualifikationen": ["staplerschein", "kranschein"]},
+        {"id": uuid.uuid4(), "vorname": "Daniel", "nachname": "Wagner", "beruf": "Sicherheitsbeauftragter", "abteilung": "Lager & Logistik", "qualifikationen": ["ersthelfer"]},
+        {"id": uuid.uuid4(), "vorname": "Stefanie", "nachname": "Meyer", "beruf": "Konstrukteur", "abteilung": "Verwaltung", "qualifikationen": []},
     ]
 
     # Users
-    demo_pruefer_id = str(uuid.uuid4())
-    demo_admin_id = str(uuid.uuid4())
+    demo_pruefer_id = uuid.uuid4()
+    demo_admin_id = uuid.uuid4()
 
     # Arbeitsmittel
     arbeitsmittel_data = [
-        {"id": str(uuid.uuid4()), "name": "Brückenkran 5t", "typ": "kran", "hersteller": "Demag", "baujahr": 2019, "standort": "Hauptwerk Stuttgart", "status": "gelb", "tage_bis_pruefung": 14, "norm": "DIN EN 60204-32"},
-        {"id": str(uuid.uuid4()), "name": "Portalkran 10t", "typ": "kran", "hersteller": "Abus", "baujahr": 2020, "standort": "Hauptwerk Stuttgart", "status": "gruen", "tage_bis_pruefung": 150, "norm": "DIN EN 60204-32"},
-        {"id": str(uuid.uuid4()), "name": "Hydraulikpresse HP-200", "typ": "presse", "hersteller": "Schuler", "baujahr": 2018, "standort": "Hauptwerk Stuttgart", "status": "rot", "tage_bis_pruefung": -15, "norm": "BetrSichV"},
-        {"id": str(uuid.uuid4()), "name": "Exzenterpresse EP-100", "typ": "presse", "hersteller": "Müller", "baujahr": 2021, "standort": "Hauptwerk Stuttgart", "status": "gruen", "tage_bis_pruefung": 200, "norm": "BetrSichV"},
-        {"id": str(uuid.uuid4()), "name": "Drehbank DMG Mori CTX 310", "typ": "drehmaschine", "hersteller": "DMG Mori", "baujahr": 2021, "standort": "Hauptwerk Stuttgart", "status": "gruen", "tage_bis_pruefung": 120, "norm": "BetrSichV"},
-        {"id": str(uuid.uuid4()), "name": "Drehmaschine Emco", "typ": "drehmaschine", "hersteller": "Emco", "baujahr": 2019, "standort": "Hauptwerk Stuttgart", "status": "gelb", "tage_bis_pruefung": 30, "norm": "BetrSichV"},
-        {"id": str(uuid.uuid4()), "name": "Gabelstapler Linde H30", "typ": "stapler", "hersteller": "Linde", "baujahr": 2018, "standort": "Außenlager Nord", "status": "gelb", "tage_bis_pruefung": 25, "norm": "DGUV V68"},
-        {"id": str(uuid.uuid4()), "name": "Stapler Still RX70", "typ": "stapler", "hersteller": "Still", "baujahr": 2022, "standort": "Außenlager Nord", "status": "gruen", "tage_bis_pruefung": 180, "norm": "DGUV V68"},
-        {"id": str(uuid.uuid4()), "name": "Schweißgerät Fronius 400i", "typ": "schweissgeraet", "hersteller": "Fronius", "baujahr": 2022, "standort": "Hauptwerk Stuttgart", "status": "gruen", "tage_bis_pruefung": 220, "norm": "DGUV V3"},
-        {"id": str(uuid.uuid4()), "name": "Alu-Stehleiter 3m", "typ": "leiter", "hersteller": "Zarges", "baujahr": 2021, "standort": "Hauptwerk Stuttgart", "status": "gruen", "tage_bis_pruefung": 90, "norm": "DIN EN 131"},
-        {"id": str(uuid.uuid4()), "name": "Anlegeleiter 4,5m", "typ": "leiter", "hersteller": "Hymer", "baujahr": 2020, "standort": "Hauptwerk Stuttgart", "status": "orange", "tage_bis_pruefung": 7, "norm": "DIN EN 131"},
-        {"id": str(uuid.uuid4()), "name": "Palettenregal Fachbodenregal R1", "typ": "regal", "hersteller": "META", "baujahr": 2020, "standort": "Außenlager Nord", "status": "gruen", "tage_bis_pruefung": 160, "norm": "DIN EN 15635"},
-        {"id": str(uuid.uuid4()), "name": "Fachbodenregal Metall", "typ": "regal", "hersteller": "Schulte", "baujahr": 2019, "standort": "Außenlager Nord", "status": "orange", "tage_bis_pruefung": 10, "norm": "DIN EN 15635"},
-        {"id": str(uuid.uuid4()), "name": "Bandschleifer BSM 150", "typ": "schleifmaschine", "hersteller": "Metabo", "baujahr": 2023, "standort": "Hauptwerk Stuttgart", "status": "gruen", "tage_bis_pruefung": 140, "norm": "DGUV V3"},
-        {"id": str(uuid.uuid4()), "name": "Kompressor Atlas Copco", "typ": "kompressor", "hersteller": "Atlas Copco", "baujahr": 2017, "standort": "Hauptwerk Stuttgart", "status": "gelb", "tage_bis_pruefung": 20, "norm": "BetrSichV"},
-        {"id": str(uuid.uuid4()), "name": "Feuerlöscher Set (5x)", "typ": "brandschutz", "hersteller": "Gloria", "baujahr": 2022, "standort": "Hauptwerk Stuttgart", "status": "gruen", "tage_bis_pruefung": 150, "norm": "EN 3"},
-        {"id": str(uuid.uuid4()), "name": "Rauchmelder Set (10x)", "typ": "brandschutz", "hersteller": "Hekatron", "baujahr": 2021, "standort": "Bürogebäude Mitte", "status": "gruen", "tage_bis_pruefung": 100, "norm": "DIN 14604"},
-        {"id": str(uuid.uuid4()), "name": "Erste-Hilfe-Kasten", "typ": "erste_hilfe", "hersteller": "Holthaus", "baujahr": 2022, "standort": "Hauptwerk Stuttgart", "status": "gruen", "tage_bis_pruefung": 120, "norm": "DIN 13157"},
+        {"id": uuid.uuid4(), "name": "Brückenkran 5t", "typ": "kran", "hersteller": "Demag", "baujahr": 2019, "standort": "Hauptwerk Stuttgart", "status": "gelb", "tage_bis_pruefung": 14, "norm": "DIN EN 60204-32"},
+        {"id": uuid.uuid4(), "name": "Portalkran 10t", "typ": "kran", "hersteller": "Abus", "baujahr": 2020, "standort": "Hauptwerk Stuttgart", "status": "gruen", "tage_bis_pruefung": 150, "norm": "DIN EN 60204-32"},
+        {"id": uuid.uuid4(), "name": "Hydraulikpresse HP-200", "typ": "presse", "hersteller": "Schuler", "baujahr": 2018, "standort": "Hauptwerk Stuttgart", "status": "rot", "tage_bis_pruefung": -15, "norm": "BetrSichV"},
+        {"id": uuid.uuid4(), "name": "Exzenterpresse EP-100", "typ": "presse", "hersteller": "Müller", "baujahr": 2021, "standort": "Hauptwerk Stuttgart", "status": "gruen", "tage_bis_pruefung": 200, "norm": "BetrSichV"},
+        {"id": uuid.uuid4(), "name": "Drehbank DMG Mori CTX 310", "typ": "drehmaschine", "hersteller": "DMG Mori", "baujahr": 2021, "standort": "Hauptwerk Stuttgart", "status": "gruen", "tage_bis_pruefung": 120, "norm": "BetrSichV"},
+        {"id": uuid.uuid4(), "name": "Drehmaschine Emco", "typ": "drehmaschine", "hersteller": "Emco", "baujahr": 2019, "standort": "Hauptwerk Stuttgart", "status": "gelb", "tage_bis_pruefung": 30, "norm": "BetrSichV"},
+        {"id": uuid.uuid4(), "name": "Gabelstapler Linde H30", "typ": "stapler", "hersteller": "Linde", "baujahr": 2018, "standort": "Außenlager Nord", "status": "gelb", "tage_bis_pruefung": 25, "norm": "DGUV V68"},
+        {"id": uuid.uuid4(), "name": "Stapler Still RX70", "typ": "stapler", "hersteller": "Still", "baujahr": 2022, "standort": "Außenlager Nord", "status": "gruen", "tage_bis_pruefung": 180, "norm": "DGUV V68"},
+        {"id": uuid.uuid4(), "name": "Schweißgerät Fronius 400i", "typ": "schweissgeraet", "hersteller": "Fronius", "baujahr": 2022, "standort": "Hauptwerk Stuttgart", "status": "gruen", "tage_bis_pruefung": 220, "norm": "DGUV V3"},
+        {"id": uuid.uuid4(), "name": "Alu-Stehleiter 3m", "typ": "leiter", "hersteller": "Zarges", "baujahr": 2021, "standort": "Hauptwerk Stuttgart", "status": "gruen", "tage_bis_pruefung": 90, "norm": "DIN EN 131"},
+        {"id": uuid.uuid4(), "name": "Anlegeleiter 4,5m", "typ": "leiter", "hersteller": "Hymer", "baujahr": 2020, "standort": "Hauptwerk Stuttgart", "status": "orange", "tage_bis_pruefung": 7, "norm": "DIN EN 131"},
+        {"id": uuid.uuid4(), "name": "Palettenregal Fachbodenregal R1", "typ": "regal", "hersteller": "META", "baujahr": 2020, "standort": "Außenlager Nord", "status": "gruen", "tage_bis_pruefung": 160, "norm": "DIN EN 15635"},
+        {"id": uuid.uuid4(), "name": "Fachbodenregal Metall", "typ": "regal", "hersteller": "Schulte", "baujahr": 2019, "standort": "Außenlager Nord", "status": "orange", "tage_bis_pruefung": 10, "norm": "DIN EN 15635"},
+        {"id": uuid.uuid4(), "name": "Bandschleifer BSM 150", "typ": "schleifmaschine", "hersteller": "Metabo", "baujahr": 2023, "standort": "Hauptwerk Stuttgart", "status": "gruen", "tage_bis_pruefung": 140, "norm": "DGUV V3"},
+        {"id": uuid.uuid4(), "name": "Kompressor Atlas Copco", "typ": "kompressor", "hersteller": "Atlas Copco", "baujahr": 2017, "standort": "Hauptwerk Stuttgart", "status": "gelb", "tage_bis_pruefung": 20, "norm": "BetrSichV"},
+        {"id": uuid.uuid4(), "name": "Feuerlöscher Set (5x)", "typ": "brandschutz", "hersteller": "Gloria", "baujahr": 2022, "standort": "Hauptwerk Stuttgart", "status": "gruen", "tage_bis_pruefung": 150, "norm": "EN 3"},
+        {"id": uuid.uuid4(), "name": "Rauchmelder Set (10x)", "typ": "brandschutz", "hersteller": "Hekatron", "baujahr": 2021, "standort": "Bürogebäude Mitte", "status": "gruen", "tage_bis_pruefung": 100, "norm": "DIN 14604"},
+        {"id": uuid.uuid4(), "name": "Erste-Hilfe-Kasten", "typ": "erste_hilfe", "hersteller": "Holthaus", "baujahr": 2022, "standort": "Hauptwerk Stuttgart", "status": "gruen", "tage_bis_pruefung": 120, "norm": "DIN 13157"},
     ]
 
     # =========================================================================
@@ -858,7 +858,7 @@ async def seed_demo_data(
 
     created_templates = {}
     for i, kat_data in enumerate(PRUEF_CHECKLISTEN[:8]):
-        template_id = str(uuid.uuid4())
+        template_id = uuid.uuid4()
         template = ChecklistenTemplate(
             id=template_id,
             organisation_id=org_id,
@@ -878,7 +878,7 @@ async def seed_demo_data(
                 ist_pflicht = True
 
             cp = ChecklistenPunkt(
-                id=str(uuid.uuid4()),
+                id=uuid.uuid4(),
                 template_id=template_id,
                 text=text,
                 reihenfolge=j,
@@ -896,7 +896,7 @@ async def seed_demo_data(
     for i in range(min(5, len(arbeitsmittel_ids))):
         am_id = arbeitsmittel_ids[i]
         template_id = list(created_templates.values())[i % len(created_templates)]
-        pruefung_id = str(uuid.uuid4())
+        pruefung_id = uuid.uuid4()
         pruefung = Pruefung(
             id=pruefung_id,
             arbeitsmittel_id=am_id,
@@ -916,7 +916,7 @@ async def seed_demo_data(
     for i in range(min(3, len(arbeitsmittel_ids) - 5)):
         am_id = arbeitsmittel_ids[5 + i]
         template_id = list(created_templates.values())[i % len(created_templates)]
-        pruefung_id = str(uuid.uuid4())
+        pruefung_id = uuid.uuid4()
         pruefung = Pruefung(
             id=pruefung_id,
             arbeitsmittel_id=am_id,
@@ -937,7 +937,7 @@ async def seed_demo_data(
         am_id = arbeitsmittel_ids[8 + i]
         template_id = list(created_templates.values())[i % len(created_templates)]
         pruefung = Pruefung(
-            id=str(uuid.uuid4()),
+            id=uuid.uuid4(),
             arbeitsmittel_id=am_id,
             checkliste_id=template_id,
             pruefer_id=demo_pruefer_id,
@@ -954,7 +954,7 @@ async def seed_demo_data(
         am_id = arbeitsmittel_ids[10 + i]
         template_id = list(created_templates.values())[i % len(created_templates)]
         pruefung = Pruefung(
-            id=str(uuid.uuid4()),
+            id=uuid.uuid4(),
             arbeitsmittel_id=am_id,
             checkliste_id=template_id,
             pruefer_id=demo_pruefer_id,
@@ -984,7 +984,7 @@ async def seed_demo_data(
                 ergebnis = "nicht_anwendbar"
 
             pp = PruefPunkt(
-                id=str(uuid.uuid4()),
+                id=uuid.uuid4(),
                 pruefung_id=pruefung_id,
                 checklisten_punkt_id=cp.id,
                 ergebnis=ergebnis,
@@ -1010,7 +1010,7 @@ async def seed_demo_data(
         if i < len(mangel_descriptions):
             desc, severity, status = mangel_descriptions[i]
             mangel = Mangel(
-                id=str(uuid.uuid4()),
+                id=uuid.uuid4(),
                 pruefung_id=pruefung_id,
                 beschreibung=desc,
                 schweregrad=severity,
@@ -1037,7 +1037,7 @@ async def seed_demo_data(
 
     unterweisungs_vorlagen = {}
     for i, uv_data in enumerate(UNTERWEISUNGS_KATALOG[:5]):
-        vorlage_id = str(uuid.uuid4())
+        vorlage_id = uuid.uuid4()
         vorlage = UnterweisungsVorlage(
             id=vorlage_id,
             organisation_id=org_id,
@@ -1073,7 +1073,7 @@ async def seed_demo_data(
             naechste_date = df_date + timedelta(days=365)
 
             df = UnterweisungsDurchfuehrung(
-                id=str(uuid.uuid4()),
+                id=uuid.uuid4(),
                 vorlage_id=vorlage_id,
                 organisation_id=org_id,
                 durchgefuehrt_von_id=demo_pruefer_id,
@@ -1117,7 +1117,7 @@ async def seed_demo_data(
     ]
 
     for gbu_info in gbu_data:
-        gbu_id = str(uuid.uuid4())
+        gbu_id = uuid.uuid4()
         gbu = Gefaehrdungsbeurteilung(
             id=gbu_id,
             organisation_id=org_id,
@@ -1133,7 +1133,7 @@ async def seed_demo_data(
 
         for gef_text, risikoklasse, bestehende, weitere in gbu_info["gefaehrdungen"]:
             gbu_gef = GBU_Gefaehrdung(
-                id=str(uuid.uuid4()),
+                id=uuid.uuid4(),
                 gbu_id=gbu_id,
                 gefaehrdung=gef_text,
                 risikoklasse=risikoklasse,
@@ -1220,7 +1220,7 @@ async def seed_demo_data(
 
     for gfs_data in gefahrstoffe_data:
         gfs = Gefahrstoff(
-            id=str(uuid.uuid4()),
+            id=uuid.uuid4(),
             organisation_id=org_id,
             name=gfs_data["name"],
             hersteller=gfs_data.get("hersteller"),
@@ -1264,7 +1264,7 @@ async def seed_demo_data(
     ]
 
     for ff_data in fremdfirmen_data:
-        fremdfirma_id = str(uuid.uuid4())
+        fremdfirma_id = uuid.uuid4()
         fremdfirma = Fremdfirma(
             id=fremdfirma_id,
             organisation_id=org_id,
@@ -1279,7 +1279,7 @@ async def seed_demo_data(
 
         for dok_data in ff_data.get("dokumente", []):
             dokument = FremdfirmaDokument(
-                id=str(uuid.uuid4()),
+                id=uuid.uuid4(),
                 fremdfirma_id=fremdfirma_id,
                 typ=dok_data["typ"],
                 name=dok_data["name"],
