@@ -700,8 +700,14 @@ async def _seed_demo_data_impl(
     await db.execute(delete(PruefPunkt).where(
         PruefPunkt.pruefung_id.in_(select(Pruefung.id).where(Pruefung.pruefer_id.in_(_demo_user_ids)))))
     await db.execute(delete(Pruefung).where(Pruefung.pruefer_id.in_(_demo_user_ids)))
+    await db.execute(delete(GBU_Gefaehrdung).where(
+        GBU_Gefaehrdung.gbu_id.in_(
+            select(Gefaehrdungsbeurteilung.id).where(
+                Gefaehrdungsbeurteilung.erstellt_von_id.in_(_demo_user_ids)))))
     await db.execute(delete(Gefaehrdungsbeurteilung).where(
         Gefaehrdungsbeurteilung.erstellt_von_id.in_(_demo_user_ids)))
+    await db.execute(delete(UnterweisungsDurchfuehrung).where(
+        UnterweisungsDurchfuehrung.durchgefuehrt_von_id.in_(_demo_user_ids)))
     await db.execute(delete(User).where(
         User.email.in_(["demo.pruefer@pruefpilot.de", "demo.admin@pruefpilot.de"])))
     await db.flush()
