@@ -778,6 +778,8 @@ export function EinstellungenPage() {
                 if (hasData) {
                   if (!confirm('Alle Demo-Daten dieser Organisation löschen? Dies kann nicht rückgängig gemacht werden!')) return
                   try {
+                    const deleteButton = event?.currentTarget as HTMLButtonElement
+                    deleteButton.disabled = true
                     await api.post('/seed/demo-daten/loeschen')
                     window.location.reload()
                   } catch (e: any) {
@@ -787,9 +789,13 @@ export function EinstellungenPage() {
                       return
                     }
                     alert(e?.response?.data?.detail || 'Fehler beim Löschen')
+                    const deleteButton = event?.currentTarget as HTMLButtonElement
+                    deleteButton.disabled = false
                   }
                 } else {
                   try {
+                    const createButton = event?.currentTarget as HTMLButtonElement
+                    createButton.disabled = true
                     await api.post('/seed/demo-daten')
                     window.location.reload()
                   } catch (e: any) {
@@ -799,10 +805,12 @@ export function EinstellungenPage() {
                       return
                     }
                     alert(e?.response?.data?.detail || 'Fehler beim Laden der Demo-Daten')
+                    const createButton = event?.currentTarget as HTMLButtonElement
+                    createButton.disabled = false
                   }
                 }
               }}
-              className={`relative w-11 h-6 rounded-full transition-colors ${(standorte.length > 0) ? 'bg-purple-600' : 'bg-gray-300'}`}
+              className={`relative w-11 h-6 rounded-full transition-colors ${(standorte.length > 0) ? 'bg-purple-600' : 'bg-gray-300'} disabled:opacity-50 disabled:cursor-not-allowed`}
             >
               <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${(standorte.length > 0) ? 'translate-x-5' : 'translate-x-0'}`} />
             </button>

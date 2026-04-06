@@ -615,35 +615,25 @@ async def seed_branchen_checklisten(
     await db.flush()
     return {"message": f"{created} branchenspezifische Checklisten erstellt", "count": created}
 
+# =============================================================================
+# OPTIMIZED SINGLE DEMO-DATEN ENDPOINT (Vercel Serverless-kompatibel)
+# =============================================================================
+
 @router.post("/demo-daten")
 async def seed_demo_data(
     org_id: str = Depends(get_current_org_id),
+    user_id: str = Depends(get_current_user_id),
     db: AsyncSession = Depends(get_db),
 ):
     """
-    Create REALISTIC and COMPLETE demo data for a Maschinenbau-Betrieb.
-    Simulates 6 months of operation with all modules populated.
-
-    Includes:
-    - Organisation + 3 Standorte + 3 Abteilungen
-    - 18 realistic Mitarbeiter with qualifications
-    - 18 Arbeitsmittel with various inspection states
-    - 10+ Checklisten from pruefkatalog_de
-    - 10+ Prüfungen with different statuses
-    - 10 Mängel with different severity levels
-    - 5 Unterweisungs-Vorlagen with HTML content
-    - 12+ Unterweisungs-Durchführungen
-    - 3-5 Gefährdungsbeurteilungen
-    - 6 Gefahrstoffe with GHS data
-    - 2-3 Fremdfirmen
+    Create comprehensive demo data in a single optimized batch.
+    Pre-generates all UUIDs and uses single batch insert + one commit.
     """
-    from app.data.pruefkatalog_de import PRUEF_CHECKLISTEN, UNTERWEISUNGS_KATALOG
-    from datetime import date
     import json as _json
-    from random import choice, randint, uniform
+    from random import randint
 
     # =========================================================================
-    # 1. UPDATE ORGANISATION
+    # FETCH AND UPDATE ORGANISATION
     # =========================================================================
     org_result = await db.execute(
         select(Organisation).where(Organisation.id == org_id)
@@ -669,14 +659,16 @@ async def seed_demo_data(
         "Lagerist", "Konstrukteur", "Sicherheitsbeauftragter", "Betriebsleiter",
         "Auszubildender", "Arbeitsvorbereiter",
     ])
-    db.add(org)
-    await db.flush()
 
     # =========================================================================
-    # 2. CREATE 3 STANDORTE
+    # PRE-GENERATE ALL UUIDS
     # =========================================================================
+    now = datetime.now(timezone.utc)
+
+    # Standorte
     standorte_data = [
         {
+            "id": str(uuid.uuid4()),
             "name": "Hauptwerk Stuttgart",
             "strasse": "Industriestraße",
             "hausnummer": "42",
@@ -685,6 +677,7 @@ async def seed_demo_data(
             "gebaeude": "Halle A",
         },
         {
+            "id": str(uuid.uuid4()),
             "name": "Außenlager Nord",
             "strasse": "Hafenweg",
             "hausnummer": "8",
@@ -692,6 +685,7 @@ async def seed_demo_data(
             "ort": "Stuttgart",
         },
         {
+            "id": str(uuid.uuid4()),
             "name": "Bürogebäude Mitte",
             "strasse": "Königstraße",
             "hausnummer": "15",
@@ -700,9 +694,80 @@ async def seed_demo_data(
         },
     ]
 
-    standorte_map = {}
+    # Abteilungen
+    abteilungen_data = [
+        {"id": str(uuid.uuid4()), "name": "Produktion"},
+        {"id": str(uuid.uuid4()), "name": "Verwaltung"},
+        {"id": str(uuid.uuid4()), "name": "Lager & Logistik"},
+    ]
+
+    # Mitarbeiter
+    mitarbeiter_data = [
+        # Produktion
+        {"id": str(uuid.uuid4()), "vorname": "Thomas", "nachname": "Müller", "beruf": "Werkstattleiter", "abteilung": "Produktion", "qualifikationen": ["kranschein", "ersthelfer"]},
+        {"id": str(uuid.uuid4()), "vorname": "Sandra", "nachname": "Weber", "beruf": "Sicherheitsbeauftragte", "abteilung": "Produktion", "qualifikationen": ["ersthelfer"]},
+        {"id": str(uuid.uuid4()), "vorname": "Michael", "nachname": "Schmidt", "beruf": "Elektriker", "abteilung": "Produktion", "qualifikationen": ["hochspannungsschein"]},
+        {"id": str(uuid.uuid4()), "vorname": "Lisa", "nachname": "Hoffmann", "beruf": "Meister", "abteilung": "Produktion", "qualifikationen": ["meisterschein"]},
+        {"id": str(uuid.uuid4()), "vorname": "Klaus", "nachname": "Hoffmann", "beruf": "CNC-Fräser", "abteilung": "Produktion", "qualifikationen": []},
+        {"id": str(uuid.uuid4()), "vorname": "Petra", "nachname": "Lang", "beruf": "CNC-Dreher", "abteilung": "Produktion", "qualifikationen": []},
+        {"id": str(uuid.uuid4()), "vorname": "Martin", "nachname": "Bauer", "beruf": "Schweißer", "abteilung": "Produktion", "qualifikationen": ["schweisserschein"]},
+        {"id": str(uuid.uuid4()), "vorname": "Brigitte", "nachname": "Schäfer", "beruf": "Schlosser", "abteilung": "Produktion", "qualifikationen": []},
+        {"id": str(uuid.uuid4()), "vorname": "Wolfgang", "nachname": "Keller", "beruf": "Instandhalter", "abteilung": "Produktion", "qualifikationen": []},
+        # Verwaltung
+        {"id": str(uuid.uuid4()), "vorname": "Markus", "nachname": "Richter", "beruf": "Betriebsleiter", "abteilung": "Verwaltung", "qualifikationen": []},
+        {"id": str(uuid.uuid4()), "vorname": "Anna", "nachname": "Fischer", "beruf": "Qualitätsprüferin", "abteilung": "Verwaltung", "qualifikationen": []},
+        {"id": str(uuid.uuid4()), "vorname": "Christian", "nachname": "Neumann", "beruf": "Arbeitsvorbereiter", "abteilung": "Verwaltung", "qualifikationen": []},
+        # Lager & Logistik
+        {"id": str(uuid.uuid4()), "vorname": "Andreas", "nachname": "Koch", "beruf": "Lagerist", "abteilung": "Lager & Logistik", "qualifikationen": ["staplerschein"]},
+        {"id": str(uuid.uuid4()), "vorname": "Julia", "nachname": "Bauer", "beruf": "Auszubildende", "abteilung": "Lager & Logistik", "qualifikationen": []},
+        {"id": str(uuid.uuid4()), "vorname": "Rolf", "nachname": "Zeller", "beruf": "Produktionshelfer", "abteilung": "Lager & Logistik", "qualifikationen": []},
+        {"id": str(uuid.uuid4()), "vorname": "Carla", "nachname": "Görz", "beruf": "Lagermeister", "abteilung": "Lager & Logistik", "qualifikationen": ["staplerschein", "kranschein"]},
+        {"id": str(uuid.uuid4()), "vorname": "Daniel", "nachname": "Wagner", "beruf": "Sicherheitsbeauftragter", "abteilung": "Lager & Logistik", "qualifikationen": ["ersthelfer"]},
+        {"id": str(uuid.uuid4()), "vorname": "Stefanie", "nachname": "Meyer", "beruf": "Konstrukteur", "abteilung": "Verwaltung", "qualifikationen": []},
+    ]
+
+    # Users
+    demo_pruefer_id = str(uuid.uuid4())
+    demo_admin_id = str(uuid.uuid4())
+
+    # Arbeitsmittel
+    arbeitsmittel_data = [
+        {"id": str(uuid.uuid4()), "name": "Brückenkran 5t", "typ": "kran", "hersteller": "Demag", "baujahr": 2019, "standort": "Hauptwerk Stuttgart", "status": "gelb", "tage_bis_pruefung": 14, "norm": "DIN EN 60204-32"},
+        {"id": str(uuid.uuid4()), "name": "Portalkran 10t", "typ": "kran", "hersteller": "Abus", "baujahr": 2020, "standort": "Hauptwerk Stuttgart", "status": "gruen", "tage_bis_pruefung": 150, "norm": "DIN EN 60204-32"},
+        {"id": str(uuid.uuid4()), "name": "Hydraulikpresse HP-200", "typ": "presse", "hersteller": "Schuler", "baujahr": 2018, "standort": "Hauptwerk Stuttgart", "status": "rot", "tage_bis_pruefung": -15, "norm": "BetrSichV"},
+        {"id": str(uuid.uuid4()), "name": "Exzenterpresse EP-100", "typ": "presse", "hersteller": "Müller", "baujahr": 2021, "standort": "Hauptwerk Stuttgart", "status": "gruen", "tage_bis_pruefung": 200, "norm": "BetrSichV"},
+        {"id": str(uuid.uuid4()), "name": "Drehbank DMG Mori CTX 310", "typ": "drehmaschine", "hersteller": "DMG Mori", "baujahr": 2021, "standort": "Hauptwerk Stuttgart", "status": "gruen", "tage_bis_pruefung": 120, "norm": "BetrSichV"},
+        {"id": str(uuid.uuid4()), "name": "Drehmaschine Emco", "typ": "drehmaschine", "hersteller": "Emco", "baujahr": 2019, "standort": "Hauptwerk Stuttgart", "status": "gelb", "tage_bis_pruefung": 30, "norm": "BetrSichV"},
+        {"id": str(uuid.uuid4()), "name": "Gabelstapler Linde H30", "typ": "stapler", "hersteller": "Linde", "baujahr": 2018, "standort": "Außenlager Nord", "status": "gelb", "tage_bis_pruefung": 25, "norm": "DGUV V68"},
+        {"id": str(uuid.uuid4()), "name": "Stapler Still RX70", "typ": "stapler", "hersteller": "Still", "baujahr": 2022, "standort": "Außenlager Nord", "status": "gruen", "tage_bis_pruefung": 180, "norm": "DGUV V68"},
+        {"id": str(uuid.uuid4()), "name": "Schweißgerät Fronius 400i", "typ": "schweissgeraet", "hersteller": "Fronius", "baujahr": 2022, "standort": "Hauptwerk Stuttgart", "status": "gruen", "tage_bis_pruefung": 220, "norm": "DGUV V3"},
+        {"id": str(uuid.uuid4()), "name": "Alu-Stehleiter 3m", "typ": "leiter", "hersteller": "Zarges", "baujahr": 2021, "standort": "Hauptwerk Stuttgart", "status": "gruen", "tage_bis_pruefung": 90, "norm": "DIN EN 131"},
+        {"id": str(uuid.uuid4()), "name": "Anlegeleiter 4,5m", "typ": "leiter", "hersteller": "Hymer", "baujahr": 2020, "standort": "Hauptwerk Stuttgart", "status": "orange", "tage_bis_pruefung": 7, "norm": "DIN EN 131"},
+        {"id": str(uuid.uuid4()), "name": "Palettenregal Fachbodenregal R1", "typ": "regal", "hersteller": "META", "baujahr": 2020, "standort": "Außenlager Nord", "status": "gruen", "tage_bis_pruefung": 160, "norm": "DIN EN 15635"},
+        {"id": str(uuid.uuid4()), "name": "Fachbodenregal Metall", "typ": "regal", "hersteller": "Schulte", "baujahr": 2019, "standort": "Außenlager Nord", "status": "orange", "tage_bis_pruefung": 10, "norm": "DIN EN 15635"},
+        {"id": str(uuid.uuid4()), "name": "Bandschleifer BSM 150", "typ": "schleifmaschine", "hersteller": "Metabo", "baujahr": 2023, "standort": "Hauptwerk Stuttgart", "status": "gruen", "tage_bis_pruefung": 140, "norm": "DGUV V3"},
+        {"id": str(uuid.uuid4()), "name": "Kompressor Atlas Copco", "typ": "kompressor", "hersteller": "Atlas Copco", "baujahr": 2017, "standort": "Hauptwerk Stuttgart", "status": "gelb", "tage_bis_pruefung": 20, "norm": "BetrSichV"},
+        {"id": str(uuid.uuid4()), "name": "Feuerlöscher Set (5x)", "typ": "brandschutz", "hersteller": "Gloria", "baujahr": 2022, "standort": "Hauptwerk Stuttgart", "status": "gruen", "tage_bis_pruefung": 150, "norm": "EN 3"},
+        {"id": str(uuid.uuid4()), "name": "Rauchmelder Set (10x)", "typ": "brandschutz", "hersteller": "Hekatron", "baujahr": 2021, "standort": "Bürogebäude Mitte", "status": "gruen", "tage_bis_pruefung": 100, "norm": "DIN 14604"},
+        {"id": str(uuid.uuid4()), "name": "Erste-Hilfe-Kasten", "typ": "erste_hilfe", "hersteller": "Holthaus", "baujahr": 2022, "standort": "Hauptwerk Stuttgart", "status": "gruen", "tage_bis_pruefung": 120, "norm": "DIN 13157"},
+    ]
+
+    # =========================================================================
+    # BUILD LOOKUP MAPS FROM PRE-GENERATED IDS
+    # =========================================================================
+    standorte_map = {s["name"]: s["id"] for s in standorte_data}
+    abteilungen_map = {a["name"]: a["id"] for a in abteilungen_data}
+    arbeitsmittel_map = {am["name"]: am["id"] for am in arbeitsmittel_data}
+
+    # =========================================================================
+    # CREATE ALL MODEL INSTANCES (NO FLUSHES)
+    # =========================================================================
+    objects_to_add = []
+
+    # Add Standorte
     for s_data in standorte_data:
         standort = Standort(
+            id=s_data["id"],
             organisation_id=org_id,
             name=s_data["name"],
             strasse=s_data["strasse"],
@@ -711,54 +776,22 @@ async def seed_demo_data(
             ort=s_data["ort"],
             gebaeude=s_data.get("gebaeude"),
         )
-        db.add(standort)
-        await db.flush()
-        standorte_map[s_data["name"]] = standort.id
+        objects_to_add.append(standort)
 
-    # =========================================================================
-    # 3. CREATE 3 ABTEILUNGEN
-    # =========================================================================
-    abteilungen_data = ["Produktion", "Verwaltung", "Lager & Logistik"]
-    abteilungen_map = {}
-    for abt_name in abteilungen_data:
+    # Add Abteilungen
+    for a_data in abteilungen_data:
         abteilung = Abteilung(
+            id=a_data["id"],
             organisation_id=org_id,
-            name=abt_name,
+            name=a_data["name"],
         )
-        db.add(abteilung)
-        await db.flush()
-        abteilungen_map[abt_name] = abteilung.id
+        objects_to_add.append(abteilung)
 
-    # =========================================================================
-    # 4. CREATE 18 REALISTIC MITARBEITER
-    # =========================================================================
-    mitarbeiter_data = [
-        # Produktion
-        {"vorname": "Thomas", "nachname": "Müller", "beruf": "Werkstattleiter", "abteilung": "Produktion", "qualifikationen": ["kranschein", "ersthelfer"]},
-        {"vorname": "Sandra", "nachname": "Weber", "beruf": "Sicherheitsbeauftragte", "abteilung": "Produktion", "qualifikationen": ["ersthelfer"]},
-        {"vorname": "Michael", "nachname": "Schmidt", "beruf": "Elektriker", "abteilung": "Produktion", "qualifikationen": ["hochspannungsschein"]},
-        {"vorname": "Lisa", "nachname": "Hoffmann", "beruf": "Meister", "abteilung": "Produktion", "qualifikationen": ["meisterschein"]},
-        {"vorname": "Klaus", "nachname": "Hoffmann", "beruf": "CNC-Fräser", "abteilung": "Produktion", "qualifikationen": []},
-        {"vorname": "Petra", "nachname": "Lang", "beruf": "CNC-Dreher", "abteilung": "Produktion", "qualifikationen": []},
-        {"vorname": "Martin", "nachname": "Bauer", "beruf": "Schweißer", "abteilung": "Produktion", "qualifikationen": ["schweisserschein"]},
-        {"vorname": "Brigitte", "nachname": "Schäfer", "beruf": "Schlosser", "abteilung": "Produktion", "qualifikationen": []},
-        {"vorname": "Wolfgang", "nachname": "Keller", "beruf": "Instandhalter", "abteilung": "Produktion", "qualifikationen": []},
-        # Verwaltung
-        {"vorname": "Markus", "nachname": "Richter", "beruf": "Betriebsleiter", "abteilung": "Verwaltung", "qualifikationen": []},
-        {"vorname": "Anna", "nachname": "Fischer", "beruf": "Qualitätsprüferin", "abteilung": "Verwaltung", "qualifikationen": []},
-        {"vorname": "Christian", "nachname": "Neumann", "beruf": "Arbeitsvorbereiter", "abteilung": "Verwaltung", "qualifikationen": []},
-        # Lager & Logistik
-        {"vorname": "Andreas", "nachname": "Koch", "beruf": "Lagerist", "abteilung": "Lager & Logistik", "qualifikationen": ["staplerschein"]},
-        {"vorname": "Julia", "nachname": "Bauer", "beruf": "Auszubildende", "abteilung": "Lager & Logistik", "qualifikationen": []},
-        {"vorname": "Rolf", "nachname": "Zeller", "beruf": "Produktionshelfer", "abteilung": "Lager & Logistik", "qualifikationen": []},
-        {"vorname": "Carla", "nachname": "Görz", "beruf": "Lagermeister", "abteilung": "Lager & Logistik", "qualifikationen": ["staplerschein", "kranschein"]},
-        {"vorname": "Daniel", "nachname": "Wagner", "beruf": "Sicherheitsbeauftragter", "abteilung": "Lager & Logistik", "qualifikationen": ["ersthelfer"]},
-        {"vorname": "Stefanie", "nachname": "Meyer", "beruf": "Konstrukteur", "abteilung": "Verwaltung", "qualifikationen": []},
-    ]
-
-    mitarbeiter_map = {}
+    # Add Mitarbeiter
+    mitarbeiter_objs = {}
     for m_data in mitarbeiter_data:
         mitarbeiter = Mitarbeiter(
+            id=m_data["id"],
             organisation_id=org_id,
             abteilung_id=abteilungen_map[m_data["abteilung"]],
             vorname=m_data["vorname"],
@@ -768,14 +801,12 @@ async def seed_demo_data(
             ist_aktiv=True,
             typ="intern",
         )
-        db.add(mitarbeiter)
-        await db.flush()
-        mitarbeiter_map[mitarbeiter.id] = (mitarbeiter, m_data["qualifikationen"])
+        objects_to_add.append(mitarbeiter)
+        mitarbeiter_objs[m_data["id"]] = (m_data, m_data["qualifikationen"])
 
-    # =========================================================================
-    # 5. CREATE DEMO PRUEFER USER
-    # =========================================================================
+    # Add Demo Users
     demo_pruefer = User(
+        id=demo_pruefer_id,
         organisation_id=org_id,
         email="demo.pruefer@pruefpilot.de",
         hashed_password="$2b$12$dummy.hash.for.demo",
@@ -784,10 +815,10 @@ async def seed_demo_data(
         rolle="pruefer",
         ist_aktiv=True,
     )
-    db.add(demo_pruefer)
-    await db.flush()
+    objects_to_add.append(demo_pruefer)
 
     demo_admin = User(
+        id=demo_admin_id,
         organisation_id=org_id,
         email="demo.admin@pruefpilot.de",
         hashed_password="$2b$12$dummy.hash.for.demo",
@@ -796,51 +827,16 @@ async def seed_demo_data(
         rolle="admin",
         ist_aktiv=True,
     )
-    db.add(demo_admin)
-    await db.flush()
+    objects_to_add.append(demo_admin)
 
-    # =========================================================================
-    # 6. CREATE 18 ARBEITSMITTEL WITH VARIED STATES
-    # =========================================================================
-    now = datetime.now(timezone.utc)
-    arbeitsmittel_data = [
-        # Krane
-        {"name": "Brückenkran 5t", "typ": "kran", "hersteller": "Demag", "baujahr": 2019, "standort": "Hauptwerk Stuttgart", "status": "gelb", "tage_bis_pruefung": 14, "norm": "DIN EN 60204-32"},
-        {"name": "Portalkran 10t", "typ": "kran", "hersteller": "Abus", "baujahr": 2020, "standort": "Hauptwerk Stuttgart", "status": "gruen", "tage_bis_pruefung": 150, "norm": "DIN EN 60204-32"},
-        # Pressen
-        {"name": "Hydraulikpresse HP-200", "typ": "presse", "hersteller": "Schuler", "baujahr": 2018, "standort": "Hauptwerk Stuttgart", "status": "rot", "tage_bis_pruefung": -15, "norm": "BetrSichV"},
-        {"name": "Exzenterpresse EP-100", "typ": "presse", "hersteller": "Müller", "baujahr": 2021, "standort": "Hauptwerk Stuttgart", "status": "gruen", "tage_bis_pruefung": 200, "norm": "BetrSichV"},
-        # Drehmaschinen
-        {"name": "Drehbank DMG Mori CTX 310", "typ": "drehmaschine", "hersteller": "DMG Mori", "baujahr": 2021, "standort": "Hauptwerk Stuttgart", "status": "gruen", "tage_bis_pruefung": 120, "norm": "BetrSichV"},
-        {"name": "Drehmaschine Emco", "typ": "drehmaschine", "hersteller": "Emco", "baujahr": 2019, "standort": "Hauptwerk Stuttgart", "status": "gelb", "tage_bis_pruefung": 30, "norm": "BetrSichV"},
-        # Flurförderzeuge
-        {"name": "Gabelstapler Linde H30", "typ": "stapler", "hersteller": "Linde", "baujahr": 2018, "standort": "Außenlager Nord", "status": "gelb", "tage_bis_pruefung": 25, "norm": "DGUV V68"},
-        {"name": "Stapler Still RX70", "typ": "stapler", "hersteller": "Still", "baujahr": 2022, "standort": "Außenlager Nord", "status": "gruen", "tage_bis_pruefung": 180, "norm": "DGUV V68"},
-        # Schweißgeräte
-        {"name": "Schweißgerät Fronius 400i", "typ": "schweissgeraet", "hersteller": "Fronius", "baujahr": 2022, "standort": "Hauptwerk Stuttgart", "status": "gruen", "tage_bis_pruefung": 220, "norm": "DGUV V3"},
-        # Leitern
-        {"name": "Alu-Stehleiter 3m", "typ": "leiter", "hersteller": "Zarges", "baujahr": 2021, "standort": "Hauptwerk Stuttgart", "status": "gruen", "tage_bis_pruefung": 90, "norm": "DIN EN 131"},
-        {"name": "Anlegeleiter 4,5m", "typ": "leiter", "hersteller": "Hymer", "baujahr": 2020, "standort": "Hauptwerk Stuttgart", "status": "orange", "tage_bis_pruefung": 7, "norm": "DIN EN 131"},
-        # Regale
-        {"name": "Palettenregal Fachbodenregal R1", "typ": "regal", "hersteller": "META", "baujahr": 2020, "standort": "Außenlager Nord", "status": "gruen", "tage_bis_pruefung": 160, "norm": "DIN EN 15635"},
-        {"name": "Fachbodenregal Metall", "typ": "regal", "hersteller": "Schulte", "baujahr": 2019, "standort": "Außenlager Nord", "status": "orange", "tage_bis_pruefung": 10, "norm": "DIN EN 15635"},
-        # Schleifmaschinen
-        {"name": "Bandschleifer BSM 150", "typ": "schleifmaschine", "hersteller": "Metabo", "baujahr": 2023, "standort": "Hauptwerk Stuttgart", "status": "gruen", "tage_bis_pruefung": 140, "norm": "DGUV V3"},
-        # Kompressor
-        {"name": "Kompressor Atlas Copco", "typ": "kompressor", "hersteller": "Atlas Copco", "baujahr": 2017, "standort": "Hauptwerk Stuttgart", "status": "gelb", "tage_bis_pruefung": 20, "norm": "BetrSichV"},
-        # Brandschutz
-        {"name": "Feuerlöscher Set (5x)", "typ": "brandschutz", "hersteller": "Gloria", "baujahr": 2022, "standort": "Hauptwerk Stuttgart", "status": "gruen", "tage_bis_pruefung": 150, "norm": "EN 3"},
-        {"name": "Rauchmelder Set (10x)", "typ": "brandschutz", "hersteller": "Hekatron", "baujahr": 2021, "standort": "Bürogebäude Mitte", "status": "gruen", "tage_bis_pruefung": 100, "norm": "DIN 14604"},
-        {"name": "Erste-Hilfe-Kasten", "typ": "erste_hilfe", "hersteller": "Holthaus", "baujahr": 2022, "standort": "Hauptwerk Stuttgart", "status": "gruen", "tage_bis_pruefung": 120, "norm": "DIN 13157"},
-    ]
-
-    arbeitsmittel_map = {}
+    # Add Arbeitsmittel
     for am_data in arbeitsmittel_data:
         tage = am_data["tage_bis_pruefung"]
         naechste_pruefung = now + timedelta(days=tage)
         letzte_pruefung = naechste_pruefung - timedelta(days=365)
 
         arbeitsmittel = Arbeitsmittel(
+            id=am_data["id"],
             organisation_id=org_id,
             standort_id=standorte_map[am_data["standort"]],
             name=am_data["name"],
@@ -853,24 +849,25 @@ async def seed_demo_data(
             letzte_pruefung_am=letzte_pruefung.date(),
             naechste_pruefung_am=naechste_pruefung.date(),
         )
-        db.add(arbeitsmittel)
-        await db.flush()
-        arbeitsmittel_map[am_data["name"]] = arbeitsmittel.id
+        objects_to_add.append(arbeitsmittel)
 
     # =========================================================================
-    # 7. CREATE CHECKLISTEN FROM PRUEFKATALOG_DE
+    # CREATE CHECKLISTEN FROM PRUEFKATALOG_DE
     # =========================================================================
+    from app.data.pruefkatalog_de import PRUEF_CHECKLISTEN, UNTERWEISUNGS_KATALOG
+
     created_templates = {}
-    for i, kat_data in enumerate(PRUEF_CHECKLISTEN[:8]):  # erste 8 Checklisten
+    for i, kat_data in enumerate(PRUEF_CHECKLISTEN[:8]):
+        template_id = str(uuid.uuid4())
         template = ChecklistenTemplate(
+            id=template_id,
             organisation_id=org_id,
             name=kat_data["name"],
             norm=kat_data.get("norm"),
             kategorie=kat_data.get("kategorie"),
         )
-        db.add(template)
-        await db.flush()
-        created_templates[kat_data["name"]] = template.id
+        objects_to_add.append(template)
+        created_templates[kat_data["name"]] = template_id
 
         for j, punkt_data in enumerate(kat_data.get("punkte", [])):
             if isinstance(punkt_data, dict):
@@ -881,119 +878,122 @@ async def seed_demo_data(
                 ist_pflicht = True
 
             cp = ChecklistenPunkt(
-                template_id=template.id,
+                id=str(uuid.uuid4()),
+                template_id=template_id,
                 text=text,
                 reihenfolge=j,
                 ist_pflicht=ist_pflicht,
             )
-            db.add(cp)
-
-    await db.flush()
+            objects_to_add.append(cp)
 
     # =========================================================================
-    # 8. CREATE PRUEFUNGEN (10+) WITH VARIED STATUSES
+    # CREATE PRUEFUNGEN WITH VARIED STATUSES
     # =========================================================================
-    pruefungen_list = []
+    pruefungen_objs = []
+    arbeitsmittel_ids = list(arbeitsmittel_map.values())
 
     # Completed successfully (5)
-    for i, (am_name, am_id) in enumerate(list(arbeitsmittel_map.items())[:5]):
+    for i in range(min(5, len(arbeitsmittel_ids))):
+        am_id = arbeitsmittel_ids[i]
         template_id = list(created_templates.values())[i % len(created_templates)]
+        pruefung_id = str(uuid.uuid4())
         pruefung = Pruefung(
+            id=pruefung_id,
             arbeitsmittel_id=am_id,
             checkliste_id=template_id,
-            pruefer_id=demo_pruefer.id,
+            pruefer_id=demo_pruefer_id,
             status="abgeschlossen",
             ergebnis="bestanden",
-            bemerkung=f"{am_name} erfolgreich geprüft.",
+            bemerkung="Erfolgreich geprüft.",
             ist_abgeschlossen=True,
             gestartet_am=now - timedelta(days=randint(10, 60)),
             abgeschlossen_am=now - timedelta(days=randint(5, 60)),
         )
-        db.add(pruefung)
-        await db.flush()
-        pruefungen_list.append(pruefung)
+        objects_to_add.append(pruefung)
+        pruefungen_objs.append((pruefung_id, template_id))
 
     # Completed with defects (3)
-    for i, (am_name, am_id) in enumerate(list(arbeitsmittel_map.items())[5:8]):
+    for i in range(min(3, len(arbeitsmittel_ids) - 5)):
+        am_id = arbeitsmittel_ids[5 + i]
         template_id = list(created_templates.values())[i % len(created_templates)]
+        pruefung_id = str(uuid.uuid4())
         pruefung = Pruefung(
+            id=pruefung_id,
             arbeitsmittel_id=am_id,
             checkliste_id=template_id,
-            pruefer_id=demo_pruefer.id,
+            pruefer_id=demo_pruefer_id,
             status="abgeschlossen",
             ergebnis="maengel",
-            bemerkung=f"Mängel an {am_name} festgestellt.",
+            bemerkung="Mängel festgestellt.",
             ist_abgeschlossen=True,
             gestartet_am=now - timedelta(days=randint(60, 90)),
             abgeschlossen_am=now - timedelta(days=randint(55, 85)),
         )
-        db.add(pruefung)
-        await db.flush()
-        pruefungen_list.append(pruefung)
+        objects_to_add.append(pruefung)
+        pruefungen_objs.append((pruefung_id, template_id))
 
     # In progress (2)
-    for i, (am_name, am_id) in enumerate(list(arbeitsmittel_map.items())[8:10]):
+    for i in range(min(2, len(arbeitsmittel_ids) - 8)):
+        am_id = arbeitsmittel_ids[8 + i]
         template_id = list(created_templates.values())[i % len(created_templates)]
         pruefung = Pruefung(
+            id=str(uuid.uuid4()),
             arbeitsmittel_id=am_id,
             checkliste_id=template_id,
-            pruefer_id=demo_pruefer.id,
+            pruefer_id=demo_pruefer_id,
             status="in_bearbeitung",
             ergebnis=None,
             bemerkung=None,
             ist_abgeschlossen=False,
             gestartet_am=now - timedelta(days=2),
         )
-        db.add(pruefung)
-        await db.flush()
-        pruefungen_list.append(pruefung)
+        objects_to_add.append(pruefung)
 
     # Planned (2)
-    for i, (am_name, am_id) in enumerate(list(arbeitsmittel_map.items())[10:12]):
+    for i in range(min(2, len(arbeitsmittel_ids) - 10)):
+        am_id = arbeitsmittel_ids[10 + i]
         template_id = list(created_templates.values())[i % len(created_templates)]
         pruefung = Pruefung(
+            id=str(uuid.uuid4()),
             arbeitsmittel_id=am_id,
             checkliste_id=template_id,
-            pruefer_id=demo_pruefer.id,
+            pruefer_id=demo_pruefer_id,
             status="entwurf",
             ergebnis=None,
             bemerkung=None,
             ist_abgeschlossen=False,
             gestartet_am=now + timedelta(days=randint(5, 30)),
         )
-        db.add(pruefung)
-        await db.flush()
-        pruefungen_list.append(pruefung)
+        objects_to_add.append(pruefung)
 
     # =========================================================================
-    # 9. ADD PRUEF PUNKTE TO PRUEFUNGEN
+    # CREATE PRUEF PUNKTE
     # =========================================================================
-    for pruefung in pruefungen_list[:8]:  # nur bei completed
+    for pruefung_id, template_id in pruefungen_objs:
         cp_result = await db.execute(
             select(ChecklistenPunkt).where(
-                ChecklistenPunkt.template_id == pruefung.checkliste_id
+                ChecklistenPunkt.template_id == template_id
             )
         )
         check_points = cp_result.scalars().all()
         for j, cp in enumerate(check_points):
             ergebnis = "ok"
-            if pruefung.ergebnis == "maengel" and j >= len(check_points) - 2:
+            if j >= len(check_points) - 2:
                 ergebnis = "mangel"
             elif j % 5 == 0:
                 ergebnis = "nicht_anwendbar"
 
             pp = PruefPunkt(
-                pruefung_id=pruefung.id,
+                id=str(uuid.uuid4()),
+                pruefung_id=pruefung_id,
                 checklisten_punkt_id=cp.id,
                 ergebnis=ergebnis,
-                geprueft_am=pruefung.abgeschlossen_am if pruefung.ist_abgeschlossen else None,
+                geprueft_am=now.date() if ergebnis != "ok" else None,
             )
-            db.add(pp)
-
-    await db.flush()
+            objects_to_add.append(pp)
 
     # =========================================================================
-    # 10. CREATE MAENGEL (8-12) WITH VARIED SEVERITY
+    # CREATE MAENGEL
     # =========================================================================
     mangel_descriptions = [
         ("Hydraulikschlauch Leckage", "rot", "offen"),
@@ -1004,27 +1004,24 @@ async def seed_demo_data(
         ("Reifenprofil gering", "orange", "offen"),
         ("Verschleiß Gabelzinken", "gelb", "offen"),
         ("Flüssigkeitsverlust Hydraulik", "rot", "offen"),
-        ("Verschmutzte Kühlmittel", "gruen", "erledigt"),
-        ("Dichtung porös", "orange", "offen"),
     ]
 
-    mangle_list = []
-    for i, (desc, severity, status) in enumerate(mangel_descriptions[:8]):
-        if i < len(pruefungen_list):
+    for i, (pruefung_id, _) in enumerate(pruefungen_objs[:8]):
+        if i < len(mangel_descriptions):
+            desc, severity, status = mangel_descriptions[i]
             mangel = Mangel(
-                pruefung_id=pruefungen_list[i].id,
+                id=str(uuid.uuid4()),
+                pruefung_id=pruefung_id,
                 beschreibung=desc,
                 schweregrad=severity,
                 status=status,
                 frist=now.date() + timedelta(days=randint(3, 30)) if status != "erledigt" else None,
                 erledigt_am=now - timedelta(days=randint(1, 7)) if status == "erledigt" else None,
             )
-            db.add(mangel)
-            await db.flush()
-            mangle_list.append(mangel)
+            objects_to_add.append(mangel)
 
     # =========================================================================
-    # 11. CREATE UNTERWEISUNGS-VORLAGEN FROM KATALOG
+    # CREATE UNTERWEISUNGS-VORLAGEN
     # =========================================================================
     def _generate_unterweisung_html(name: str, norm_referenz: str, beschreibung: str, stichpunkte: list) -> str:
         html = f"<h2>{name}</h2>"
@@ -1039,8 +1036,10 @@ async def seed_demo_data(
         return html
 
     unterweisungs_vorlagen = {}
-    for i, uv_data in enumerate(UNTERWEISUNGS_KATALOG[:5]):  # erste 5
+    for i, uv_data in enumerate(UNTERWEISUNGS_KATALOG[:5]):
+        vorlage_id = str(uuid.uuid4())
         vorlage = UnterweisungsVorlage(
+            id=vorlage_id,
             organisation_id=org_id,
             name=uv_data["name"],
             kategorie=uv_data.get("kategorie"),
@@ -1057,41 +1056,38 @@ async def seed_demo_data(
             ),
             ist_system_template=False,
         )
-        db.add(vorlage)
-        await db.flush()
-        unterweisungs_vorlagen[uv_data["name"]] = vorlage.id
+        objects_to_add.append(vorlage)
+        unterweisungs_vorlagen[uv_data["name"]] = vorlage_id
 
     # =========================================================================
-    # 12. CREATE UNTERWEISUNGS-DURCHFUEHRUNGEN (12+)
+    # CREATE UNTERWEISUNGS-DURCHFUEHRUNGEN
     # =========================================================================
-    uw_durchfuehrungen = []
     for vorlage_name, vorlage_id in list(unterweisungs_vorlagen.items())[:3]:
-        # 4 durchfuehrungen pro vorlage
         for j in range(4):
-            mitarbeiter_ids = list(mitarbeiter_map.keys())
+            mitarbeiter_ids = list(mitarbeiter_objs.keys())
             mit_id = mitarbeiter_ids[j % len(mitarbeiter_ids)]
-            mit, _ = mitarbeiter_map[mit_id]
+            m_data, _ = mitarbeiter_objs[mit_id]
+            voller_name = f"{m_data['vorname']} {m_data['nachname']}"
 
             df_date = now.date() - timedelta(days=randint(30, 180))
             naechste_date = df_date + timedelta(days=365)
 
             df = UnterweisungsDurchfuehrung(
+                id=str(uuid.uuid4()),
                 vorlage_id=vorlage_id,
                 organisation_id=org_id,
-                durchgefuehrt_von_id=demo_pruefer.id,
-                teilnehmer_name=mit.voller_name,
-                teilnehmer_email=mit.email,
+                durchgefuehrt_von_id=demo_pruefer_id,
+                teilnehmer_name=voller_name,
+                teilnehmer_email=f"{m_data['vorname'].lower()}.{m_data['nachname'].lower()}@pruefpilot.de",
                 datum=df_date,
-                unterschrift_name=mit.voller_name,
+                unterschrift_name=voller_name,
                 naechste_unterweisung_am=naechste_date,
                 bemerkung="Unterweisung erfolgreich durchgeführt und attestiert.",
             )
-            db.add(df)
-            await db.flush()
-            uw_durchfuehrungen.append(df)
+            objects_to_add.append(df)
 
     # =========================================================================
-    # 13. CREATE GEFAEHRDUNGSBEURTEILUNGEN (3-5)
+    # CREATE GEFAEHRDUNGSBEURTEILUNGEN
     # =========================================================================
     gbu_data = [
         {
@@ -1121,9 +1117,11 @@ async def seed_demo_data(
     ]
 
     for gbu_info in gbu_data:
+        gbu_id = str(uuid.uuid4())
         gbu = Gefaehrdungsbeurteilung(
+            id=gbu_id,
             organisation_id=org_id,
-            erstellt_von_id=demo_admin.id,
+            erstellt_von_id=demo_admin_id,
             titel=gbu_info["titel"],
             arbeitsbereich=gbu_info["arbeitsbereich"],
             status="aktiv",
@@ -1131,12 +1129,12 @@ async def seed_demo_data(
             naechste_ueberpruefung_am=now.date() + timedelta(days=365),
             bemerkung="Systematische Gefährdungsbeurteilung gemäß ArbSchG durchgeführt.",
         )
-        db.add(gbu)
-        await db.flush()
+        objects_to_add.append(gbu)
 
         for gef_text, risikoklasse, bestehende, weitere in gbu_info["gefaehrdungen"]:
             gbu_gef = GBU_Gefaehrdung(
-                gbu_id=gbu.id,
+                id=str(uuid.uuid4()),
+                gbu_id=gbu_id,
                 gefaehrdung=gef_text,
                 risikoklasse=risikoklasse,
                 bestehende_massnahmen=bestehende,
@@ -1146,12 +1144,10 @@ async def seed_demo_data(
                 status="offen",
                 reihenfolge=0,
             )
-            db.add(gbu_gef)
-
-    await db.flush()
+            objects_to_add.append(gbu_gef)
 
     # =========================================================================
-    # 14. CREATE GEFAHRSTOFFE (6)
+    # CREATE GEFAHRSTOFFE
     # =========================================================================
     gefahrstoffe_data = [
         {
@@ -1224,6 +1220,7 @@ async def seed_demo_data(
 
     for gfs_data in gefahrstoffe_data:
         gfs = Gefahrstoff(
+            id=str(uuid.uuid4()),
             organisation_id=org_id,
             name=gfs_data["name"],
             hersteller=gfs_data.get("hersteller"),
@@ -1236,15 +1233,11 @@ async def seed_demo_data(
             menge=gfs_data.get("menge"),
             letzte_aktualisierung=now.date() - timedelta(days=randint(30, 180)),
         )
-        db.add(gfs)
-
-    await db.flush()
+        objects_to_add.append(gfs)
 
     # =========================================================================
-    # 15. CREATE FREMDFIRMEN (2-3)
+    # CREATE FREMDFIRMEN
     # =========================================================================
-    from app.models.fremdfirma import Fremdfirma, FremdfirmaDokument
-
     fremdfirmen_data = [
         {
             "name": "Elektro Meyer GmbH",
@@ -1271,7 +1264,9 @@ async def seed_demo_data(
     ]
 
     for ff_data in fremdfirmen_data:
+        fremdfirma_id = str(uuid.uuid4())
         fremdfirma = Fremdfirma(
+            id=fremdfirma_id,
             organisation_id=org_id,
             name=ff_data["name"],
             ansprechpartner=ff_data.get("ansprechpartner"),
@@ -1280,24 +1275,24 @@ async def seed_demo_data(
             taetigkeit=ff_data.get("taetigkeit"),
             status="aktiv",
         )
-        db.add(fremdfirma)
-        await db.flush()
+        objects_to_add.append(fremdfirma)
 
         for dok_data in ff_data.get("dokumente", []):
             dokument = FremdfirmaDokument(
-                fremdfirma_id=fremdfirma.id,
+                id=str(uuid.uuid4()),
+                fremdfirma_id=fremdfirma_id,
                 typ=dok_data["typ"],
                 name=dok_data["name"],
                 gueltig_bis=dok_data.get("gueltig_bis"),
                 status=dok_data.get("status", "aktuell"),
             )
-            db.add(dokument)
-
-    await db.flush()
+            objects_to_add.append(dokument)
 
     # =========================================================================
-    # COMMIT & RETURN SUMMARY
+    # BATCH ADD ALL OBJECTS + SINGLE COMMIT
     # =========================================================================
+    db.add(org)
+    db.add_all(objects_to_add)
     await db.commit()
 
     return {
@@ -1305,13 +1300,10 @@ async def seed_demo_data(
         "organisation": org.name,
         "standorte": len(standorte_map),
         "abteilungen": len(abteilungen_map),
-        "mitarbeiter": len(mitarbeiter_map),
+        "mitarbeiter": len(mitarbeiter_data),
         "arbeitsmittel": len(arbeitsmittel_map),
         "checklisten_templates": len(created_templates),
-        "pruefungen": len(pruefungen_list),
-        "maengel": len(mangle_list),
         "unterweisungs_vorlagen": len(unterweisungs_vorlagen),
-        "unterweisungs_durchfuehrungen": len(uw_durchfuehrungen),
         "gefaehrdungsbeurteilungen": len(gbu_data),
         "gefahrstoffe": len(gefahrstoffe_data),
         "fremdfirmen": len(fremdfirmen_data),
