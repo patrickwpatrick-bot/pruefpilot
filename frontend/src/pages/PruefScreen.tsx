@@ -5,6 +5,7 @@
 import { useEffect, useReducer, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { CheckCircle2, XCircle, MinusCircle, AlertTriangle, ArrowLeft, Lock, FileDown, Camera } from 'lucide-react'
+import toast from 'react-hot-toast'
 import api from '@/lib/api'
 import type { Pruefung } from '@/types'
 import { SignaturPad } from '@/components/ui/SignaturPad'
@@ -129,15 +130,19 @@ export function PruefScreen() {
     : null
 
   const handleBewertung = async (ergebnis: Ergebnis) => {
-    if (!currentPunkt || !state.pruefung) return
+    if (!currentPunkt || !state.pruefung || state.saving) return
     dispatch({ type: 'SET_SAVING', payload: true })
+
+    // Save previous state for rollback
+    const previousPruefung = state.pruefung
+
     try {
       await api.put(`/pruefungen/${state.pruefung.id}/punkte/${currentPunkt.id}`, {
         ergebnis,
         bemerkung: null,
       })
 
-      // Update local state
+      // Update local state only after API success
       const updated = { ...state.pruefung }
       updated.pruef_punkte = updated.pruef_punkte.map(p =>
         p.id === currentPunkt.id ? { ...p, ergebnis } : p
@@ -152,13 +157,18 @@ export function PruefScreen() {
           dispatch({ type: 'SET_CURRENT_IDX', payload: state.currentIdx + 1 })
         }
       }
+    } catch (err: any) {
+      // Rollback to previous state
+      dispatch({ type: 'UPDATE_PRUEFUNG', payload: previousPruefung })
+      const detail = err?.response?.data?.detail || 'Bewertung konnte nicht gespeichert werden'
+      toast.error(detail)
     } finally {
       dispatch({ type: 'SET_SAVING', payload: false })
     }
   }
 
   const handleMangelSubmit = async () => {
-    if (!state.pruefung || !currentPunkt) return
+    if (!state.pruefung || !currentPunkt || state.saving) return
     dispatch({ type: 'SET_SAVING', payload: true })
     try {
       await api.post(`/pruefungen/${state.pruefung.id}/maengel`, {
@@ -173,6 +183,9 @@ export function PruefScreen() {
       if (state.currentIdx < state.pruefung.pruef_punkte.length - 1) {
         dispatch({ type: 'SET_CURRENT_IDX', payload: state.currentIdx + 1 })
       }
+    } catch (err: any) {
+      const detail = err?.response?.data?.detail || 'Mangel konnte nicht gespeichert werden'
+      toast.error(detail)
     } finally {
       dispatch({ type: 'SET_SAVING', payload: false })
     }
@@ -325,36 +338,48 @@ export function PruefScreen() {
             {/* Action buttons */}
             <div className="grid grid-cols-3 gap-3 mt-4">
               <div
-                onClick={() => handleBewertung('ok')}
-                className={`flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all cursor-pointer ${
+                onClick={() => !state.saving && handleBewertung('ok')}
+                role="button"
+                aria-disabled={state.saving}
+                className={`flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all ${
+                  state.saving ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
+                } ${
                   currentPunkt.ergebnis === 'ok'
                     ? 'border-green-500 bg-green-50'
                     : 'border-gray-100 hover:border-green-300 hover:bg-green-50/50'
-                } ${state.saving ? 'opacity-50 cursor-not-allowed' : ''}`}
+                }`}
               >
                 <CheckCircle2 size={28} className="text-green-500" />
                 <span className="text-xs font-medium text-green-700">OK</span>
               </div>
 
               <div
-                onClick={() => handleBewertung('mangel')}
-                className={`flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all cursor-pointer ${
+                onClick={() => !state.saving && handleBewertung('mangel')}
+                role="button"
+                aria-disabled={state.saving}
+                className={`flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all ${
+                  state.saving ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
+                } ${
                   currentPunkt.ergebnis === 'mangel'
                     ? 'border-red-500 bg-red-50'
                     : 'border-gray-100 hover:border-red-300 hover:bg-red-50/50'
-                } ${state.saving ? 'opacity-50 cursor-not-allowed' : ''}`}
+                }`}
               >
                 <XCircle size={28} className="text-red-500" />
                 <span className="text-xs font-medium text-red-700">Mangel</span>
               </div>
 
               <div
-                onClick={() => handleBewertung('nicht_anwendbar')}
-                className={`flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all cursor-pointer ${
+                onClick={() => !state.saving && handleBewertung('nicht_anwendbar')}
+                role="button"
+                aria-disabled={state.saving}
+                className={`flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all ${
+                  state.saving ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
+                } ${
                   currentPunkt.ergebnis === 'nicht_anwendbar'
                     ? 'border-gray-400 bg-gray-50'
                     : 'border-gray-100 hover:border-gray-300 hover:bg-gray-50/50'
-                } ${state.saving ? 'opacity-50 cursor-not-allowed' : ''}`}
+                }`}
               >
                 <MinusCircle size={28} className="text-gray-400" />
                 <span className="text-xs font-medium text-gray-500">N/A</span>
